@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -60,23 +60,31 @@ export function Navbar() {
         </div>
       </div>
       {open && (
-        <nav className="border-t border-border/60 px-5 py-4 md:hidden">
-          <ul className="flex flex-col gap-3 text-base">
+        <nav className="border-t border-border/60 md:hidden">
+          <ul className="container-page flex flex-col gap-1 py-3 text-base">
             {links.map((l) => (
               <li key={l.label}>
                 {l.to ? (
-                  <Link to={l.to} onClick={() => setOpen(false)} className="block py-1">
+                  <Link
+                    to={l.to}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-xl px-1 py-2.5"
+                  >
                     {l.label}
                   </Link>
                 ) : (
-                  <a href={l.href} onClick={() => setOpen(false)} className="block py-1">
+                  <a
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-xl px-1 py-2.5"
+                  >
                     {l.label}
                   </a>
                 )}
               </li>
             ))}
-            <li>
-              <Button size="default" asChild className="w-full">
+            <li className="pt-2">
+              <Button size="default" asChild className="w-full shadow-none">
                 <Link to="/apply" onClick={() => setOpen(false)}>
                   Apply for training
                 </Link>

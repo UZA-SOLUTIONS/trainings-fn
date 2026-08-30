@@ -308,24 +308,23 @@ export default function CohortDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b border-border/60 bg-background">
-        <div className="container-page flex items-center justify-between py-4">
-          <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-            â† All cohorts
-          </Link>
-        </div>
-      </header>
+    <div>
+      <Link
+        to="/dashboard"
+        className="inline-flex text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        ← All cohorts
+      </Link>
 
-      <main className="container-page py-10">
-        {isPending && <p className="text-sm text-muted-foreground">Loading candidatesâ€¦</p>}
+      <div className="mt-6">
+        {isPending && <p className="text-sm text-muted-foreground">Loading candidates…</p>}
         {cohort && (
           <>
             <p className="text-eyebrow text-muted-foreground">{cohort.code}</p>
             <h1 className="mt-2 font-display text-3xl font-bold">{cohort.name}</h1>
             <p className="mt-2 text-muted-foreground">
-              {enrolled.length} of {cohort.capacity} seats taken Â· {waiting.length} on the waiting
-              list Â· {cohort.location ?? "Location TBC"}
+              {enrolled.length} of {cohort.capacity} seats taken · {waiting.length} on the waiting
+              list · {cohort.location ?? "Location TBC"}
             </p>
 
             <Section title={`Enrolled (${enrolled.length})`}>
@@ -351,7 +350,7 @@ export default function CohortDetail() {
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }
@@ -382,7 +381,7 @@ function Field({ label, value }: { label: string; value: string | number | null 
   return (
     <p className="text-sm">
       <span className="text-muted-foreground">{label}: </span>
-      <span className="font-medium">{value === "" || value == null ? "â€”" : value}</span>
+      <span className="font-medium">{value === "" || value == null ? "—" : value}</span>
     </p>
   );
 }

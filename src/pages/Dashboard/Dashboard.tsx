@@ -16,7 +16,7 @@ export default function Dashboard() {
   const totalWaiting = candidates.filter((c) => c.status === "waitlisted").length;
 
   return (
-    <main className="container-page py-10">
+    <div>
       <p className="text-eyebrow text-muted-foreground">Instructor dashboard</p>
       <h1 className="mt-2 font-display text-3xl font-bold">Training cohorts</h1>
       <p className="mt-2 max-w-4xl text-muted-foreground">
@@ -41,7 +41,7 @@ export default function Dashboard() {
       </div>
 
       {isPending ? (
-        <p className="mt-10 text-sm text-muted-foreground">Loading cohortsâ€¦</p>
+        <p className="mt-10 text-sm text-muted-foreground">Loading cohorts…</p>
       ) : (
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {cohorts.map((c) => {
@@ -57,7 +57,7 @@ export default function Dashboard() {
                   <div>
                     <h2 className="font-display text-lg font-semibold">{c.name}</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {c.code} Â· {c.location ?? "Location TBC"} Â·{" "}
+                      {c.code} · {c.location ?? "Location TBC"} ·{" "}
                       {c.start_date ?? "Start date TBC"}
                     </p>
                   </div>
@@ -92,6 +92,6 @@ export default function Dashboard() {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

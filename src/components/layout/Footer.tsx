@@ -86,7 +86,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-3">
             <nav aria-labelledby="footer-programme">
               <h2
                 id="footer-programme"

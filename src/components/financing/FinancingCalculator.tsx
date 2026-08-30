@@ -138,7 +138,7 @@ export function FinancingCalculator({
 
   const chip = (active: boolean) =>
     cn(
-      "rounded-full border px-4 py-2 text-sm font-normal transition-colors",
+      "rounded-full border px-3 py-2 text-sm font-normal transition-colors sm:px-4",
       active
         ? "border-transparent bg-volt text-volt-foreground"
         : "border-white/25 bg-white/5 text-ink-foreground/80 hover:bg-white/10",
@@ -155,12 +155,12 @@ export function FinancingCalculator({
         src="/ev.avif"
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/80" />
+      <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/84 md:bg-[oklch(0.16_0.04_158)]/80" />
 
       <div className="relative z-10 grid md:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-7 border-white/10 p-6 md:border-r md:p-8 lg:p-10">
+        <div className="space-y-6 border-white/10 p-5 sm:space-y-7 sm:p-6 md:border-r md:p-8 lg:p-10">
           <div>
             <p className="text-eyebrow opacity-70">Payment</p>
             <div
@@ -178,7 +178,7 @@ export function FinancingCalculator({
                     aria-selected={active}
                     onClick={() => selectPayOption(value)}
                     className={cn(
-                      "rounded-full px-3 py-2.5 text-sm font-medium transition-colors",
+                      "rounded-full px-2 py-2.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm",
                       active
                         ? "bg-volt text-volt-foreground"
                         : "text-ink-foreground/70 hover:text-ink-foreground",
@@ -276,12 +276,12 @@ export function FinancingCalculator({
           )}
         </div>
 
-        <div className="flex min-h-[24rem] flex-col justify-between gap-8 p-6 md:p-8 lg:p-10">
+        <div className="flex min-h-0 flex-col justify-between gap-6 border-t border-white/10 p-5 sm:gap-8 sm:p-6 md:min-h-[24rem] md:border-t-0 md:p-8 lg:p-10">
           {payOption === "financed" && (
             <>
               <div>
                 <p className="text-eyebrow opacity-70">Daily payment</p>
-                <p className="mt-2 font-display text-5xl font-bold tracking-tight md:text-6xl">
+                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
                   {Math.round(financed.dailyPayment).toLocaleString("en-US")}
                 </p>
                 <p className="mt-1 text-sm opacity-70">RWF / day · {financed.months} mo</p>
@@ -313,7 +313,7 @@ export function FinancingCalculator({
             <>
               <div>
                 <p className="text-eyebrow opacity-70">You pay</p>
-                <p className="mt-2 font-display text-5xl font-bold tracking-tight md:text-6xl">
+                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
                   {Math.round(cash.payable).toLocaleString("en-US")}
                 </p>
                 <p className="mt-1 text-sm opacity-70">RWF · {cash.discountPercent}% off</p>
@@ -331,7 +331,7 @@ export function FinancingCalculator({
             <>
               <div>
                 <p className="text-eyebrow opacity-70">Due now</p>
-                <p className="mt-2 font-display text-5xl font-bold tracking-tight md:text-6xl">
+                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
                   {Math.round(split.now).toLocaleString("en-US")}
                 </p>
                 <p className="mt-1 text-sm opacity-70">RWF · 30% after {split.discountPercent}% off</p>
@@ -355,9 +355,11 @@ export function FinancingCalculator({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-6">
-      <dt className="opacity-75">{label}</dt>
-      <dd className="text-right font-display font-semibold tracking-tight">{value}</dd>
+    <div className="flex items-start justify-between gap-3 sm:gap-6">
+      <dt className="shrink-0 opacity-75">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-display font-semibold tracking-tight">
+        {value}
+      </dd>
     </div>
   );
 }

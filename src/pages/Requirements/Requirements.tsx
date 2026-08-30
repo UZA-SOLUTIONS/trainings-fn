@@ -10,12 +10,12 @@ const EXAMPLES = [15_000_000, 25_000_000, 28_000_000];
 export default function Requirements() {
   return (
     <main className="bg-muted/30">
-      <div className="container-page py-12">
+      <div className="container-page py-10 sm:py-12">
         <p className="text-eyebrow text-muted-foreground">Tunga Taxi</p>
-        <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">
+        <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl md:text-4xl">
           What the bank needs from you
         </h1>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           Bring these to your instructor or upload them against your permanent candidate ID. Items
           marked as conditional only apply to some drivers.
         </p>

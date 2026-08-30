@@ -77,15 +77,14 @@ export default function Institutions() {
   });
 
   return (
-    <main className="container-page py-10">
+    <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-eyebrow text-muted-foreground">Partnerships</p>
           <h1 className="mt-1 font-display text-3xl font-bold">Financing institutions</h1>
           <p className="mt-2 max-w-4xl text-sm text-muted-foreground">
-            Each partner bank sets its own formula. Applicants in a programme are routed
-            automatically to that programme&rsquo;s default lender â€” Tunga Taxi drivers go to
-            Unguka Bank, other segments to their own institution.
+            Each partner bank sets its own formula. Applicants are routed to that programme&apos;s
+            default lender — Tunga Taxi to Unguka Bank, other segments to theirs.
           </p>
         </div>
         {isAdmin && (
@@ -190,7 +189,7 @@ export default function Institutions() {
           </Card>
         ))}
       </div>
-    </main>
+    </div>
   );
 }
 

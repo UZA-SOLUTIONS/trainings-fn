@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+﻿@import "tailwindcss" source(none);
 @source ".";
 
 @custom-variant dark (&:is(.dark *));
@@ -147,6 +147,11 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 
   h1,
@@ -191,9 +196,14 @@
 @utility container-page {
   margin-inline: auto;
   width: 100%;
-  padding-inline: 1.75rem;
+  max-width: 100%;
+  padding-inline: 1.25rem;
 
   @media (width >= 40rem) {
+    padding-inline: 2rem;
+  }
+
+  @media (width >= 48rem) {
     padding-inline: 3rem;
   }
 

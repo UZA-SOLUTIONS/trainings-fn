@@ -884,24 +884,35 @@ export default function Apply() {
             )}
                 </div>
 
-                <div className="flex items-center justify-between gap-3 border-t border-border/60 px-6 py-5 md:px-8">
+                <div className="flex flex-col gap-3 border-t border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-5 md:px-8">
                   <p className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{current.title}</span>
                     <span className="mx-2 text-border">·</span>
                     {step + 1}/{STEPS.length}
                   </p>
-                  <div className="flex gap-2">
-                    {step > 0 && (
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto">
+                    {step > 0 ? (
                       <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
                         Back
                       </Button>
+                    ) : (
+                      <span className="hidden sm:block" />
                     )}
                     {isLast ? (
-                      <Button type="button" onClick={submit} disabled={busy}>
+                      <Button
+                        type="button"
+                        onClick={submit}
+                        disabled={busy}
+                        className={step === 0 ? "col-span-2" : undefined}
+                      >
                         {busy ? "Submitting…" : "Submit application"}
                       </Button>
                     ) : (
-                      <Button type="button" onClick={goNext}>
+                      <Button
+                        type="button"
+                        onClick={goNext}
+                        className={step === 0 ? "col-span-2" : undefined}
+                      >
                         Continue
                       </Button>
                     )}

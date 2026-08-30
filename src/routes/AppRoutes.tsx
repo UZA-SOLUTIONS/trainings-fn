@@ -44,8 +44,8 @@ export function AppRoutes() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/manage" element={<Manage />} />
               <Route path="/institutions" element={<Institutions />} />
+              <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
             </Route>
-            <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

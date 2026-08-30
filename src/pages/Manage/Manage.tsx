@@ -130,7 +130,7 @@ export default function Manage() {
   const banked = candidates.filter((c) => c.has_bank_account).length;
 
   return (
-    <main className="container-page py-10">
+    <div>
       <p className="text-eyebrow text-muted-foreground">Management</p>
       <h1 className="mt-2 font-display text-3xl font-bold">Programme overview</h1>
       <p className="mt-2 max-w-4xl text-muted-foreground">
@@ -303,6 +303,6 @@ export default function Manage() {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }
