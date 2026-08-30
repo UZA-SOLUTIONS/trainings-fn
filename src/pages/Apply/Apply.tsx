@@ -432,7 +432,7 @@ export default function Apply() {
 
           <div className="min-w-0">
             {step === 0 && (
-              <div className="relative mb-8 overflow-hidden rounded-3xl">
+              <div className="relative mb-6 overflow-hidden rounded-2xl sm:mb-8 sm:rounded-3xl">
                 <img
                   src="/hero.avif"
                   alt=""
@@ -440,9 +440,9 @@ export default function Apply() {
                   className="absolute inset-0 h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/78" />
-                <div className="relative px-6 py-8 text-ink-foreground md:px-8 md:py-10">
+                <div className="relative px-5 py-7 text-ink-foreground sm:px-6 sm:py-8 md:px-8 md:py-10">
                   <p className="text-eyebrow text-volt">Call for applications</p>
-                  <h2 className="mt-2 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
+                  <h2 className="mt-2 max-w-lg font-display text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
                     Apply for Tunga Taxi training
                   </h2>
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-foreground/75">
@@ -452,7 +452,7 @@ export default function Apply() {
               </div>
             )}
 
-            <ol className="mb-6 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            <ol className="mb-5 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
               {STEPS.map((s, i) => (
                 <li key={s.title} className="shrink-0">
                   <button
@@ -460,7 +460,7 @@ export default function Apply() {
                     onClick={() => i < step && setStep(i)}
                     disabled={i > step}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "min-h-10 rounded-full border px-3.5 py-2 text-xs font-medium transition-colors",
                       i === step
                         ? "border-primary bg-primary text-primary-foreground"
                         : i < step

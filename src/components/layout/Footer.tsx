@@ -55,21 +55,21 @@ const year = new Date().getFullYear();
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-ink text-ink-foreground">
-      <div className="container-page py-14 md:py-16">
+    <footer className="border-t border-white/10 bg-ink pb-[env(safe-area-inset-bottom)] text-ink-foreground">
+      <div className="container-page py-12 sm:py-14 md:py-16">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-4">
             <Link to="/" className="inline-flex items-center" aria-label="UZA Mobility home">
               <img
                 src="/white.avif"
                 alt="UZA Mobility"
-                className="h-10 w-auto object-contain"
+                className="h-9 w-auto object-contain sm:h-10"
               />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-foreground/65">
               Electric mobility ownership for Rwanda&apos;s professional drivers.
             </p>
-            <ul className="mt-6 flex items-center gap-2">
+            <ul className="mt-6 flex flex-wrap items-center gap-2">
               {SOCIAL.map(({ label, href, icon: Icon }) => (
                 <li key={label}>
                   <a
@@ -77,7 +77,7 @@ export function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-ink-foreground/70 transition-colors hover:border-volt/50 hover:bg-white/5 hover:text-volt"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-ink-foreground/70 transition-colors hover:border-volt/50 hover:bg-white/5 hover:text-volt"
                   >
                     <Icon size={16} aria-hidden />
                   </a>
@@ -86,7 +86,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-3">
             <nav aria-labelledby="footer-programme">
               <h2
                 id="footer-programme"

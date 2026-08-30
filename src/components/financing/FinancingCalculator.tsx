@@ -138,7 +138,7 @@ export function FinancingCalculator({
 
   const chip = (active: boolean) =>
     cn(
-      "rounded-full border px-3 py-2 text-sm font-normal transition-colors sm:px-4",
+      "rounded-full border px-2.5 py-1.5 text-xs font-normal transition-colors sm:px-4 sm:py-2 sm:text-sm",
       active
         ? "border-transparent bg-volt text-volt-foreground"
         : "border-white/25 bg-white/5 text-ink-foreground/80 hover:bg-white/10",
@@ -159,14 +159,14 @@ export function FinancingCalculator({
       />
       <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/84 md:bg-[oklch(0.16_0.04_158)]/80" />
 
-      <div className="relative z-10 grid md:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6 border-white/10 p-5 sm:space-y-7 sm:p-6 md:border-r md:p-8 lg:p-10">
+      <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1.05fr_0.95fr]">
+        <div className="order-2 space-y-4 border-white/10 p-4 sm:space-y-6 sm:p-6 md:order-1 md:border-r md:p-8 lg:p-10">
           <div>
             <p className="text-eyebrow opacity-70">Payment</p>
             <div
               role="tablist"
               aria-label="Payment option"
-              className="mt-3 grid grid-cols-3 gap-1 rounded-full border border-white/20 bg-white/5 p-1"
+              className="mt-2 grid grid-cols-3 gap-0.5 rounded-full border border-white/20 bg-white/5 p-0.5 sm:mt-3 sm:gap-1 sm:p-1"
             >
               {PAY_OPTIONS.map((value) => {
                 const active = payOption === value;
@@ -178,7 +178,7 @@ export function FinancingCalculator({
                     aria-selected={active}
                     onClick={() => selectPayOption(value)}
                     className={cn(
-                      "rounded-full px-2 py-2.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm",
+                      "rounded-full px-1.5 py-2 text-[11px] font-medium transition-colors sm:px-3 sm:py-2.5 sm:text-sm",
                       active
                         ? "bg-volt text-volt-foreground"
                         : "text-ink-foreground/70 hover:text-ink-foreground",
@@ -193,7 +193,7 @@ export function FinancingCalculator({
 
           <div>
             <p className="text-eyebrow opacity-70">Buyer</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
               {PROGRAMS.map((p) => (
                 <button
                   key={p.value}
@@ -210,12 +210,12 @@ export function FinancingCalculator({
           <div>
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-eyebrow opacity-70">Vehicle cost</p>
-              <p className="font-display text-lg font-semibold tracking-tight">
+              <p className="font-display text-base font-semibold tracking-tight sm:text-lg">
                 {formatRwf(vehicleCost, { compact: true })}
               </p>
             </div>
             <Slider
-              className="mt-4"
+              className="mt-3 sm:mt-4"
               value={[vehicleCost]}
               min={8_000_000}
               max={35_000_000}
@@ -229,12 +229,14 @@ export function FinancingCalculator({
               <div>
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-eyebrow opacity-70">Deposit</p>
-                  <p className="font-display text-lg font-semibold">
-                    {depositPercent}% · {formatRwf(financed.clientDeposit, { compact: true })}
+                  <p className="font-display text-base font-semibold sm:text-lg">
+                    {depositPercent}%
+                    <span className="mx-1 opacity-40 sm:mx-1.5">·</span>
+                    {formatRwf(financed.clientDeposit, { compact: true })}
                   </p>
                 </div>
                 <Slider
-                  className="mt-4"
+                  className="mt-3 sm:mt-4"
                   value={[depositPercent]}
                   min={depositMin}
                   max={depositMax}
@@ -242,7 +244,7 @@ export function FinancingCalculator({
                   onValueChange={([v]) => setDepositPercent(v ?? depositPercent)}
                 />
                 {financed.uzaAccessTopUp > 0 || belowRequired ? (
-                  <p className="mt-2 text-xs opacity-70">
+                  <p className="mt-1.5 text-[11px] opacity-70 sm:mt-2 sm:text-xs">
                     {financed.uzaAccessTopUp > 0
                       ? `UZA Access +${formatRwf(financed.uzaAccessTopUp, { compact: true })}`
                       : null}
@@ -255,11 +257,11 @@ export function FinancingCalculator({
               <div>
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-eyebrow opacity-70">Term</p>
-                  <p className="text-sm opacity-70">
+                  <p className="text-xs opacity-70 sm:text-sm">
                     {(financed.annualRate * 100).toFixed(0)}% p.a.
                   </p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
                   {terms.map((t) => (
                     <button
                       key={t}
@@ -276,35 +278,43 @@ export function FinancingCalculator({
           )}
         </div>
 
-        <div className="flex min-h-0 flex-col justify-between gap-6 border-t border-white/10 p-5 sm:gap-8 sm:p-6 md:min-h-[24rem] md:border-t-0 md:p-8 lg:p-10">
+        <div className="order-1 flex min-h-0 flex-col justify-between gap-4 border-b border-white/10 p-4 sm:gap-6 sm:p-6 md:order-2 md:min-h-[24rem] md:border-b-0 md:p-8 lg:p-10">
           {payOption === "financed" && (
             <>
               <div>
                 <p className="text-eyebrow opacity-70">Daily payment</p>
-                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
                   {Math.round(financed.dailyPayment).toLocaleString("en-US")}
                 </p>
-                <p className="mt-1 text-sm opacity-70">RWF / day · {financed.months} mo</p>
+                <p className="mt-1.5 text-xs opacity-70 sm:mt-2 sm:text-sm">
+                  RWF / day · {financed.months} mo
+                </p>
               </div>
 
-              <dl className="space-y-3 border-t border-white/15 pt-6 text-sm">
+              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
                 <Row label="Monthly" value={formatRwf(financed.monthlyPayment)} />
                 <Row label="Financed" value={formatRwf(financed.principal)} />
                 <Row label="Interest" value={formatRwf(financed.totalInterest)} />
                 {financed.processingFee > 0 && (
-                  <Row label="Fee" value={formatRwf(financed.processingFee)} />
+                  <div className="hidden sm:block">
+                    <Row label="Fee" value={formatRwf(financed.processingFee)} />
+                  </div>
                 )}
                 {financed.annualInsurance > 0 && (
-                  <Row label="Insurance / yr" value={formatRwf(financed.annualInsurance)} />
+                  <div className="hidden sm:block">
+                    <Row label="Insurance / yr" value={formatRwf(financed.annualInsurance)} />
+                  </div>
                 )}
-                <Row
-                  label="Collateral free"
-                  value={
-                    financed.equityReleaseMonth
-                      ? `Mo ${financed.equityReleaseMonth}`
-                      : "At end"
-                  }
-                />
+                <div className="hidden sm:block">
+                  <Row
+                    label="Collateral free"
+                    value={
+                      financed.equityReleaseMonth
+                        ? `Mo ${financed.equityReleaseMonth}`
+                        : "At end"
+                    }
+                  />
+                </div>
               </dl>
             </>
           )}
@@ -313,13 +323,15 @@ export function FinancingCalculator({
             <>
               <div>
                 <p className="text-eyebrow opacity-70">You pay</p>
-                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
                   {Math.round(cash.payable).toLocaleString("en-US")}
                 </p>
-                <p className="mt-1 text-sm opacity-70">RWF · {cash.discountPercent}% off</p>
+                <p className="mt-1.5 text-xs opacity-70 sm:mt-1 sm:text-sm">
+                  RWF · {cash.discountPercent}% off
+                </p>
               </div>
 
-              <dl className="space-y-3 border-t border-white/15 pt-6 text-sm">
+              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
                 <Row label="List price" value={formatRwf(vehicleCost)} />
                 <Row label="Discount" value={`− ${formatRwf(cash.discountAmount)}`} />
                 <Row label="Due now" value={formatRwf(cash.payable)} />
@@ -331,13 +343,15 @@ export function FinancingCalculator({
             <>
               <div>
                 <p className="text-eyebrow opacity-70">Due now</p>
-                <p className="mt-2 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
                   {Math.round(split.now).toLocaleString("en-US")}
                 </p>
-                <p className="mt-1 text-sm opacity-70">RWF · 30% after {split.discountPercent}% off</p>
+                <p className="mt-1.5 text-xs opacity-70 sm:mt-1 sm:text-sm">
+                  RWF · 30% after {split.discountPercent}% off
+                </p>
               </div>
 
-              <dl className="space-y-3 border-t border-white/15 pt-6 text-sm">
+              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
                 <Row label="List price" value={formatRwf(vehicleCost)} />
                 <Row label="Discount" value={`− ${formatRwf(split.discountAmount)}`} />
                 <Row label="Total" value={formatRwf(split.payable)} />
@@ -346,7 +360,7 @@ export function FinancingCalculator({
             </>
           )}
 
-          <p className="text-xs opacity-55">Indicative · {routed.name}</p>
+          <p className="text-[11px] opacity-55 sm:text-xs">Indicative · {routed.name}</p>
         </div>
       </div>
     </Card>

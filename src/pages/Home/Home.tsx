@@ -108,40 +108,48 @@ export default function Home() {
   }
 
   return (
-    <main>
-      <section className="relative min-h-[min(100svh,42rem)] overflow-hidden md:min-h-[68vh]">
+    <main className="overflow-x-hidden">
+      <section className="relative flex min-h-[min(58svh,26rem)] flex-col overflow-hidden sm:min-h-[min(62svh,32rem)] md:min-h-[68vh]">
         <img
           src={heroImage}
           alt="Electric taxi charging on a Kigali street at golden hour"
           width={1600}
           height={1104}
-          className="absolute inset-0 h-full w-full object-cover object-[68%_center] sm:object-center"
+          className="absolute inset-0 h-full w-full object-cover object-[72%_center] sm:object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[oklch(0.16_0.04_158)]/88 via-[oklch(0.16_0.04_158)]/72 to-[oklch(0.16_0.04_158)]/55 md:bg-gradient-to-r md:from-[oklch(0.16_0.04_158)]/92 md:via-[oklch(0.18_0.04_158)]/78 md:to-[oklch(0.2_0.03_158)]/45" />
-        <div className="relative container-page flex min-h-[min(100svh,42rem)] flex-col justify-end pb-12 pt-24 text-ink-foreground sm:justify-center sm:py-20 md:min-h-[68vh] md:py-24">
-          <h1 className="max-w-[18ch] font-display text-[1.85rem] font-bold leading-[1.12] tracking-tight sm:max-w-lg sm:text-4xl md:max-w-xl md:text-5xl lg:max-w-2xl lg:text-6xl">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,oklch(0.14_0.035_158_/0.55)_0%,oklch(0.14_0.035_158_/0.72)_38%,oklch(0.14_0.035_158_/0.92)_100%)] md:bg-gradient-to-r md:from-[oklch(0.16_0.04_158)]/92 md:via-[oklch(0.18_0.04_158)]/78 md:to-[oklch(0.2_0.03_158)]/45" />
+
+        <div className="relative container-page flex flex-1 flex-col justify-center py-12 text-ink-foreground sm:py-16 md:min-h-[68vh] md:py-24">
+          <p className="mb-2 text-eyebrow text-volt md:hidden">UZA Mobility</p>
+          <h1 className="max-w-[16ch] font-display text-[1.75rem] font-bold leading-[1.1] tracking-tight sm:max-w-lg sm:text-4xl md:max-w-xl md:text-5xl lg:max-w-2xl lg:text-6xl">
             Rwanda&apos;s taxi drivers should own the electric car they drive.
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-foreground/80 sm:mt-6 sm:text-base md:max-w-lg md:text-lg lg:max-w-xl">
-            One platform from application to ownership: a driver ID, guided bank paperwork,
-            transparent daily repayments, vehicle allocation the moment a container ships, and
-            tracking all the way to Kigali.
+          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-ink-foreground/80 sm:mt-6 sm:max-w-md sm:text-base md:max-w-lg md:text-lg lg:max-w-xl">
+            <span className="sm:hidden">
+              From application to ownership — driver ID, financing, allocation, and tracking to
+              Kigali.
+            </span>
+            <span className="hidden sm:inline">
+              One platform from application to ownership: a driver ID, guided bank paperwork,
+              transparent daily repayments, vehicle allocation the moment a container ships, and
+              tracking all the way to Kigali.
+            </span>
           </p>
-          <div className="mt-8 flex w-full flex-col gap-3 sm:mt-10 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-6 flex w-full flex-col gap-2.5 sm:mt-10 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <Button
               size="lg"
               asChild
-              className="w-full bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:w-auto"
+              className="h-11 w-full bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:h-12 sm:w-auto"
             >
-              <a href="#calculator">See what you&apos;d pay per day</a>
+              <a href="#calculator">See what you&apos;d pay</a>
             </Button>
             <Button
               size="lg"
               asChild
-              className="w-full border border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:w-auto"
+              className="h-11 w-full border border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:h-12 sm:w-auto"
             >
               <a href="#programme" className="inline-flex items-center justify-center gap-2">
-                How the programme works
+                How it works
                 <FiArrowRight aria-hidden />
               </a>
             </Button>
@@ -149,10 +157,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="programme" className="container-page py-14 sm:py-20 md:py-28">
+      <section id="programme" className="container-page section-y">
         <div className="max-w-3xl">
           <p className="text-eyebrow text-muted-foreground">The path to ownership</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+          <h2 className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight sm:mt-3 sm:text-3xl md:text-4xl">
             Six steps, one ID, nothing lost between offices.
           </h2>
         </div>
@@ -160,19 +168,19 @@ export default function Home() {
         <ol className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 md:grid-cols-2 lg:mt-14 lg:grid-cols-3">
           {STEPS.map((s, i) => (
             <li key={s.n} className="relative">
-              <article className="flex h-full flex-col rounded-2xl border border-border/70 bg-background p-5 sm:p-6 transition-colors hover:border-primary/35 hover:bg-muted/20">
+              <article className="flex h-full flex-col rounded-2xl border border-border/70 bg-background p-5 transition-colors active:bg-muted/30 sm:p-6 hover:border-primary/35 hover:bg-muted/20">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-semibold text-primary">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-semibold text-primary sm:h-10 sm:w-10">
                     {s.n}
                   </span>
                   <span className="text-eyebrow text-muted-foreground">
                     Step {i + 1} of {STEPS.length}
                   </span>
                 </div>
-                <h3 className="mt-5 font-display text-lg font-semibold leading-snug tracking-tight">
+                <h3 className="mt-4 font-display text-base font-semibold leading-snug tracking-tight sm:mt-5 sm:text-lg">
                   {s.title}
                 </h3>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground sm:mt-3">
                   {s.body}
                 </p>
               </article>
@@ -181,18 +189,18 @@ export default function Home() {
         </ol>
       </section>
 
-      <section id="calculator" className="border-y border-border/50 bg-muted/30 py-14 sm:py-20 md:py-28">
+      <section id="calculator" className="border-y border-border/50 bg-muted/30 section-y">
         <div className="container-page">
           <div className="max-w-3xl">
             <p className="text-eyebrow text-muted-foreground">Financing calculator</p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight sm:mt-3 sm:text-3xl md:text-4xl">
               Know the daily number before you sign anything.
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed sm:mt-4 sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:mt-4 sm:text-base">
               Toggle Cash, Split, or Financed to see one path at a time.
             </p>
           </div>
-          <div className="mt-8 sm:mt-10">
+          <div className="mt-7 sm:mt-10">
             <FinancingCalculator option={calcOption} onOptionChange={setCalcOption} />
           </div>
         </div>
@@ -200,7 +208,7 @@ export default function Home() {
 
       <section
         id="partners"
-        className="relative overflow-hidden border-t border-border/50 py-14 text-ink-foreground sm:py-20 md:py-28"
+        className="relative overflow-hidden border-t border-border/50 text-ink-foreground section-y"
       >
         <img
           src="/hero.avif"
@@ -233,25 +241,27 @@ export default function Home() {
         <div className="relative container-page">
           <div className="max-w-3xl">
             <p className="text-eyebrow text-ink-foreground/50">Built for partnerships</p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h2 className="mt-1.5 text-[1.4rem] font-bold leading-tight tracking-tight sm:mt-3 sm:text-3xl md:text-4xl">
               Same data, three points of view.
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-foreground/70 sm:mt-4 sm:text-base">
+            <p className="mt-2 max-w-2xl text-[13px] leading-snug text-ink-foreground/70 sm:mt-4 sm:text-base sm:leading-relaxed">
               Each partner financial institution defines its own document checklist, deposit rule
               and collateral policy. Add an institution without changing the platform.
             </p>
           </div>
 
-          <div className="partners-shared mt-8 border border-ink-foreground/12 bg-ink-foreground/[0.04] px-4 py-4 sm:mt-12 sm:px-5 sm:py-5 md:px-8 md:py-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-8">
+          <div className="partners-shared mt-5 border border-ink-foreground/12 bg-ink-foreground/[0.04] px-3 py-3 sm:mt-12 sm:px-5 sm:py-5 md:px-8 md:py-6">
+            <div className="flex flex-col gap-2.5 sm:gap-4 md:flex-row md:items-center md:justify-between md:gap-8">
               <div className="shrink-0">
                 <p className="text-eyebrow text-volt">Shared record</p>
-                <p className="mt-1 text-sm text-ink-foreground/55">One source of truth for every partner</p>
+                <p className="mt-0.5 text-xs text-ink-foreground/55 sm:mt-1 sm:text-sm">
+                  One source of truth for every partner
+                </p>
               </div>
-              <ul className="flex flex-wrap gap-2 sm:items-center sm:gap-x-1 sm:gap-y-2 md:justify-end">
+              <ul className="flex flex-wrap gap-1.5 sm:items-center sm:gap-x-1 sm:gap-y-2 md:justify-end">
                 {SHARED_RECORD.map((item) => (
                   <li key={item}>
-                    <span className="inline-flex rounded-full border border-ink-foreground/15 px-2.5 py-1 font-display text-[12px] font-medium tracking-wide text-ink-foreground/90 sm:border-0 sm:px-0 sm:py-0 sm:text-[13px]">
+                    <span className="inline-flex rounded-full border border-ink-foreground/15 px-2 py-0.5 font-display text-[11px] font-medium tracking-wide text-ink-foreground/90 sm:border-0 sm:px-0 sm:py-0 sm:text-[13px]">
                       {item}
                     </span>
                   </li>
@@ -260,31 +270,36 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-2 grid gap-0 md:mt-0 md:grid-cols-3">
+          <div className="mt-1 grid gap-0 md:mt-0 md:grid-cols-3">
             {PORTALS.map((p, i) => (
               <article
                 key={p.title}
-                className="partners-lens group relative border-t border-ink-foreground/12 px-0 py-8 sm:px-1 sm:py-10 md:border-t-0 md:border-l md:px-8 md:py-12 first:md:border-l-0 first:md:pl-0"
+                className="partners-lens group relative border-t border-ink-foreground/12 px-0 py-5 sm:px-1 sm:py-10 md:border-t-0 md:border-l md:px-8 md:py-12 first:md:border-l-0 first:md:pl-0"
                 style={{ animationDelay: `${120 + i * 90}ms` }}
               >
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-display text-4xl font-bold leading-none tracking-tight text-volt/35 transition-colors duration-300 group-hover:text-volt/55 sm:text-5xl md:text-6xl">
+                <div className="flex items-baseline justify-between gap-3 sm:gap-4">
+                  <span className="font-display text-[1.75rem] font-bold leading-none tracking-tight text-volt/35 transition-colors duration-300 group-hover:text-volt/55 sm:text-5xl md:text-6xl">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span className="text-eyebrow text-ink-foreground/35">Viewpoint</span>
                 </div>
-                <h3 className="mt-5 font-display text-xl font-semibold tracking-tight sm:mt-6 sm:text-2xl">
+                <h3 className="mt-3 font-display text-lg font-semibold tracking-tight sm:mt-6 sm:text-2xl">
                   {p.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-foreground/55">{p.lens}</p>
-                <ul className="mt-6 space-y-3 sm:mt-8 sm:space-y-4">
+                <p className="mt-1 text-[13px] leading-snug text-ink-foreground/55 sm:mt-2 sm:text-sm sm:leading-relaxed">
+                  {p.lens}
+                </p>
+                <ul className="mt-3.5 space-y-2 sm:mt-8 sm:space-y-4">
                   {p.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-3 text-sm text-ink-foreground/85">
+                    <li
+                      key={pt}
+                      className="flex items-start gap-2.5 text-[13px] text-ink-foreground/85 sm:gap-3 sm:text-sm"
+                    >
                       <span
-                        className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 bg-volt"
+                        className="mt-[0.4rem] h-1.5 w-1.5 shrink-0 bg-volt"
                         aria-hidden
                       />
-                      <span className="leading-relaxed">{pt}</span>
+                      <span className="leading-snug sm:leading-relaxed">{pt}</span>
                     </li>
                   ))}
                 </ul>
@@ -294,19 +309,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="offers" className="container-page py-14 sm:py-20 md:py-28">
+      <section id="offers" className="container-page section-y">
         <div className="max-w-2xl">
           <p className="text-eyebrow text-muted-foreground">Buy options</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+          <h2 className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight sm:mt-3 sm:text-3xl md:text-4xl">
             Three ways in. Every one of them ends in an EV.
           </h2>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:mt-12 sm:gap-5 lg:grid-cols-3 lg:items-stretch">
+        <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-12 sm:grid sm:snap-none sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3 lg:items-stretch [&::-webkit-scrollbar]:hidden">
           {OFFERS.map((o, i) => (
             <article
               key={o.tag}
-              className={`relative flex flex-col overflow-hidden rounded-2xl border p-5 sm:p-7 md:p-8 ${
+              className={`relative flex w-[85vw] max-w-[21rem] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border p-5 sm:w-auto sm:max-w-none sm:shrink sm:p-7 md:p-8 ${
                 o.highlight
                   ? "border-primary bg-primary text-primary-foreground lg:-translate-y-2 lg:shadow-none"
                   : "border-border/70 bg-background"
