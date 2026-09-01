@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -218,7 +218,7 @@ export default function Apply() {
     position: number | null;
   } | null>(null);
 
-  const { data: cohorts } = useQuery({
+  const { data: cohorts, isError, error, refetch } = useQuery({
     queryKey: ["open-cohorts"],
     queryFn: () => listCohorts({ open: true }),
   });
@@ -496,6 +496,25 @@ export default function Apply() {
                 <div className="p-6 md:p-8">
             {step === 0 && (
               <Grid>
+                {isError && (
+                  <div className="md:col-span-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <p className="text-sm font-medium text-destructive">
+                      Cannot load open cohorts from the server
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {error instanceof Error ? error.message : "Request failed"}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => refetch()}
+                    >
+                      Try again
+                    </Button>
+                  </div>
+                )}
                 <Field
                   className="md:col-span-2"
                   label="Training cohort"

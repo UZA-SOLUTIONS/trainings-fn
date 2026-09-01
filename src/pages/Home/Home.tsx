@@ -109,7 +109,7 @@ export default function Home() {
 
   return (
     <main className="overflow-x-hidden">
-      <section className="relative flex min-h-[min(58svh,26rem)] flex-col overflow-hidden sm:min-h-[min(62svh,32rem)] md:min-h-[68vh]">
+      <section className="relative flex min-h-[min(52svh,24rem)] flex-col overflow-hidden sm:min-h-[min(56svh,28rem)] md:min-h-[62vh]">
         <img
           src={heroImage}
           alt="Electric taxi charging on a Kigali street at golden hour"
@@ -117,42 +117,36 @@ export default function Home() {
           height={1104}
           className="absolute inset-0 h-full w-full object-cover object-[72%_center] sm:object-center"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,oklch(0.14_0.035_158_/0.55)_0%,oklch(0.14_0.035_158_/0.72)_38%,oklch(0.14_0.035_158_/0.92)_100%)] md:bg-gradient-to-r md:from-[oklch(0.16_0.04_158)]/92 md:via-[oklch(0.18_0.04_158)]/78 md:to-[oklch(0.2_0.03_158)]/45" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,oklch(0.14_0.035_158_/0.55)_0%,oklch(0.14_0.035_158_/0.78)_45%,oklch(0.14_0.035_158_/0.94)_100%)] md:bg-gradient-to-r md:from-[oklch(0.16_0.04_158)]/94 md:via-[oklch(0.18_0.04_158)]/82 md:to-[oklch(0.2_0.03_158)]/50" />
 
-        <div className="relative container-page flex flex-1 flex-col justify-center py-12 text-ink-foreground sm:py-16 md:min-h-[68vh] md:py-24">
-          <p className="mb-2 text-eyebrow text-volt md:hidden">UZA Mobility</p>
-          <h1 className="max-w-[16ch] font-display text-[1.75rem] font-bold leading-[1.1] tracking-tight sm:max-w-lg sm:text-4xl md:max-w-xl md:text-5xl lg:max-w-2xl lg:text-6xl">
-            Rwanda&apos;s taxi drivers should own the electric car they drive.
-          </h1>
-          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-ink-foreground/80 sm:mt-6 sm:max-w-md sm:text-base md:max-w-lg md:text-lg lg:max-w-xl">
-            <span className="sm:hidden">
-              From application to ownership — driver ID, financing, allocation, and tracking to
-              Kigali.
-            </span>
-            <span className="hidden sm:inline">
-              One platform from application to ownership: a driver ID, guided bank paperwork,
-              transparent daily repayments, vehicle allocation the moment a container ships, and
-              tracking all the way to Kigali.
-            </span>
-          </p>
-          <div className="mt-6 flex w-full flex-col gap-2.5 sm:mt-10 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-            <Button
-              size="lg"
-              asChild
-              className="h-11 w-full bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:h-12 sm:w-auto"
-            >
-              <a href="#calculator">See what you&apos;d pay</a>
-            </Button>
-            <Button
-              size="lg"
-              asChild
-              className="h-11 w-full border border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:h-12 sm:w-auto"
-            >
-              <a href="#programme" className="inline-flex items-center justify-center gap-2">
-                How it works
-                <FiArrowRight aria-hidden />
-              </a>
-            </Button>
+        <div className="relative container-page flex flex-1 flex-col justify-center py-10 text-ink-foreground sm:py-12 md:min-h-[62vh] md:py-16">
+          <div className="min-w-0 max-w-3xl">
+            <h1 className="font-display text-[2.25rem] font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4rem]">
+              Own the EV you drive.
+            </h1>
+            <p className="mt-4 max-w-xl text-lg text-ink-foreground/75 sm:mt-5 sm:text-xl md:text-2xl">
+              One ID from training to bank approval, allocation, and delivery.
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                size="default"
+                asChild
+                className="h-10 bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:h-11"
+              >
+                <a href="#calculator">See what you&apos;d pay</a>
+              </Button>
+              <Button
+                size="default"
+                asChild
+                variant="outline"
+                className="h-10 border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:h-11"
+              >
+                <a href="#programme" className="inline-flex items-center gap-2">
+                  How it works
+                  <FiArrowRight aria-hidden />
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>

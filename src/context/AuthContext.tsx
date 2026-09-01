@@ -8,7 +8,17 @@ import {
   type ReactNode,
 } from "react";
 import * as authService from "@/services/authService";
+import { AUTH_EXPIRED_EVENT } from "@/services/api";
 import type { StaffUser } from "@/services/authService";
+import {
+  can,
+  canAccessTab,
+  isAdmin as checkAdmin,
+  isBankPartner as checkBankPartner,
+  isInstructor as checkInstructor,
+  type PermissionAction,
+} from "@/lib/permissions";
+import type { DashboardTab } from "@/components/dashboard/types";
 
 type AuthContextValue = {
   user: StaffUser | null;
@@ -16,7 +26,12 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isAdmin: boolean;
+  isInstructor: boolean;
+  isBankPartner: boolean;
+  can: (action: PermissionAction) => boolean;
+  canAccessTab: (tab: DashboardTab) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -41,6 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const { user: next } = await authService.login(email, password);
     setUser(next);
@@ -56,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const next = await authService.getMe();
+    setUser(next);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -63,9 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      isAdmin: user?.role === "admin",
+      refreshUser,
+      isAdmin: checkAdmin(user),
+      isInstructor: checkInstructor(user),
+      isBankPartner: checkBankPartner(user),
+      can: (action: PermissionAction) => can(user, action),
+      canAccessTab: (tab: DashboardTab) => canAccessTab(user, tab),
     }),
-    [user, loading, login, register, logout],
+    [user, loading, login, register, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   FiMail,
   FiMapPin,
@@ -19,6 +19,7 @@ const PROGRAMME = [
 
 const DRIVERS = [
   { to: "/apply", label: "Apply for training" },
+  { to: "/track", label: "Track your ID" },
   { to: "/requirements", label: "Requirements" },
   { to: "/auth", label: "Staff login" },
 ];
@@ -115,12 +116,21 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {DRIVERS.map((item) => (
                   <li key={item.label}>
-                    <Link
-                      to={item.to}
-                      className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                    >
-                      {item.label}
-                    </Link>
+                    {"href" in item ? (
+                      <a
+                        href={item.href}
+                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={item.to}
+                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

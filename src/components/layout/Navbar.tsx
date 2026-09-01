@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FiMenu, FiX, FiArrowUpRight } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/#programme", label: "Programme" },
+  { to: "/track", label: "Track ID" },
   { href: "/#calculator", label: "Financing" },
   { href: "/#offers", label: "Buy options" },
   { to: "/apply", label: "Apply" },

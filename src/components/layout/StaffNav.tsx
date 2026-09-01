@@ -1,31 +1,57 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiLogOut,
   FiMenu,
   FiX,
   FiUsers,
-  FiSettings,
   FiBriefcase,
-  FiHome,
+  FiBarChart2,
+  FiUserCheck,
+  FiUser,
+  FiSettings,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { roleLabel } from "@/lib/permissions";
 
-const NAV = [
-  { to: "/dashboard", label: "Instructor", icon: FiUsers, adminOnly: false },
-  { to: "/manage", label: "Management", icon: FiSettings, adminOnly: true },
-  { to: "/institutions", label: "Banks", icon: FiBriefcase, adminOnly: false },
-] as const;
+import type { DashboardTab } from "@/components/dashboard/types";
+import { dashboardTabFromPath } from "@/components/dashboard/types";
+
+const WORKSPACE_NAV: {
+  tab: DashboardTab;
+  label: string;
+  icon: typeof FiBarChart2;
+}[] = [
+  { tab: "overview", label: "Overview", icon: FiBarChart2 },
+  { tab: "cohorts", label: "Cohorts", icon: FiUsers },
+  { tab: "candidates", label: "Candidates", icon: FiUserCheck },
+  { tab: "banks", label: "Banks", icon: FiBriefcase },
+];
+
+const ACCOUNT_NAV: {
+  tab: DashboardTab;
+  label: string;
+  icon: typeof FiUser;
+}[] = [
+  { tab: "profile", label: "Profile", icon: FiUser },
+  { tab: "settings", label: "Settings", icon: FiSettings },
+];
 
 export function StaffNav() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, canAccessTab, isBankPartner } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+
+  const workspaceNav = WORKSPACE_NAV.filter(({ tab }) => canAccessTab(tab)).map((item) =>
+    item.tab === "candidates" && isBankPartner
+      ? { ...item, label: "Borrower files" }
+      : item,
+  );
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -34,16 +60,34 @@ export function StaffNav() {
     navigate("/auth", { replace: true });
   }
 
-  const links = NAV.filter((item) => !item.adminOnly || isAdmin);
+  function isActive(tab: DashboardTab) {
+    return dashboardTabFromPath(location.pathname, location.search) === tab;
+  }
 
-  function isActive(path: string) {
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  function navLink(tab: DashboardTab, label: string, Icon: typeof FiBarChart2) {
+    const active = isActive(tab);
+    return (
+      <Link
+        key={tab}
+        to={`/dashboard?tab=${tab}`}
+        onClick={() => setOpen(false)}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-3 py-3.5 text-base font-medium transition-colors",
+          active
+            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        )}
+      >
+        <Icon size={18} aria-hidden />
+        {label}
+      </Link>
+    );
   }
 
   const navBody = (
     <>
       <div className="flex items-center justify-between gap-3 px-5 py-5">
-        <Link to="/" className="inline-flex items-center" aria-label="UZA Mobility home">
+        <Link to="/dashboard" className="inline-flex items-center" aria-label="Dashboard">
           <img src="/logo.avif" alt="UZA Mobility" className="h-9 w-auto object-contain" />
         </Link>
         <button
@@ -56,46 +100,37 @@ export function StaffNav() {
         </button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3">
-        <p className="mb-2 px-3 text-eyebrow text-muted-foreground">Workspace</p>
-        {links.map(({ to, label, icon: Icon }) => {
-          const active = isActive(to);
-          return (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <Icon size={18} aria-hidden />
-              {label}
-            </Link>
-          );
-        })}
-        <Link
-          to="/"
-          onClick={() => setOpen(false)}
-          className="mt-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <FiHome size={18} aria-hidden />
-          Public site
-        </Link>
+      <nav className="flex flex-1 flex-col gap-6 px-3">
+        <div>
+          <p className="mb-3 px-3 text-eyebrow text-sidebar-foreground/50">Workspace</p>
+          <div className="flex flex-col gap-3">
+            {workspaceNav.map(({ tab, label, icon }) => navLink(tab, label, icon))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-3 px-3 text-eyebrow text-sidebar-foreground/50">Account</p>
+          <div className="flex flex-col gap-3">
+            {ACCOUNT_NAV.map(({ tab, label, icon }) => navLink(tab, label, icon))}
+          </div>
+        </div>
       </nav>
 
-      <div className="mt-auto border-t border-border/70 px-4 py-4">
-        <p className="truncate text-sm font-medium text-foreground">
-          {user?.full_name || user?.email || "Staff"}
-        </p>
-        {user?.role && (
-          <p className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">
-            {user.role}
+      <div className="mt-auto border-t border-sidebar-border px-4 py-4">
+        <Link
+          to="/dashboard?tab=profile"
+          onClick={() => setOpen(false)}
+          className="block rounded-xl px-2 py-2 transition-colors hover:bg-sidebar-accent"
+        >
+          <p className="truncate text-base font-medium text-sidebar-foreground">
+            {user?.full_name || user?.email || "Staff"}
           </p>
-        )}
+          {user?.role && (
+            <p className="mt-0.5 text-sm uppercase tracking-wide text-muted-foreground">
+              {roleLabel(user.role)}
+            </p>
+          )}
+        </Link>
         <Button
           variant="outline"
           className="mt-3 w-full shadow-none"
@@ -110,8 +145,8 @@ export function StaffNav() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-border/70 bg-background px-4 py-3 lg:hidden">
-        <Link to="/" aria-label="UZA Mobility home">
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border/70 bg-background px-4 py-3 lg:hidden">
+        <Link to="/dashboard" aria-label="Dashboard">
           <img src="/logo.avif" alt="UZA Mobility" className="h-8 w-auto object-contain" />
         </Link>
         <button
@@ -135,7 +170,7 @@ export function StaffNav() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border/70 bg-background transition-transform duration-200 lg:static lg:z-0 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >

@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export default function Requirements() {
           <h2 className="font-display text-lg font-semibold">Deposit tiers</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             10% of the vehicle price up to 25M RWF, 15% from 26M RWF. If you cannot raise the cash,
-            you may pledge collateral worth more than 30% of the vehicle value â€” or ask UZA Access
+            you may pledge collateral worth more than 30% of the vehicle value — or ask UZA Access
             to top up the gap.
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -58,7 +58,7 @@ export default function Requirements() {
                     {formatRwf(req.amount, { compact: true })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {Math.round(req.percent * 100)}% deposit Â· or collateral above{" "}
+                    {Math.round(req.percent * 100)}% deposit · or collateral above{" "}
                     {formatRwf(req.collateralAmount, { compact: true })}
                   </p>
                 </div>

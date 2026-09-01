@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { loadDashboardPreferences } from "@/components/dashboard/preferences";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, login, register } = useAuth();
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const defaultDashboard = `/dashboard?tab=${loadDashboardPreferences().defaultTab}`;
+  const redirectTo = fromState ?? defaultDashboard;
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,8 +22,8 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate("/dashboard", { replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user) navigate(redirectTo, { replace: true });
+  }, [user, loading, navigate, redirectTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +34,7 @@ export default function Login() {
       } else {
         await login(email, password);
       }
-      navigate("/dashboard", { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -44,7 +49,9 @@ export default function Login() {
         {mode === "signin" ? "Instructor sign in" : "Create a staff account"}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Manage Tunga Taxi cohorts, candidates and the waiting list.
+        {mode === "signin"
+          ? "Manage Tunga Taxi cohorts, candidates and the waiting list."
+          : "Only the first account becomes programme admin. Other staff are created by an admin."}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -93,7 +100,7 @@ export default function Login() {
         onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
       >
         {mode === "signin"
-          ? "No staff account yet? Create one"
+          ? "First-time setup? Create the admin account"
           : "Already have an account? Sign in"}
       </button>
 

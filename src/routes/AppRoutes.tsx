@@ -7,12 +7,11 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { LoadingSpinner } from "@/components/feedback/LoadingSpinner";
 
 const Home = lazy(() => import("@/pages/Home"));
+const Track = lazy(() => import("@/pages/Track"));
 const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
 const Login = lazy(() => import("@/pages/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Manage = lazy(() => import("@/pages/Manage"));
-const Institutions = lazy(() => import("@/pages/Institutions"));
 const CohortDetail = lazy(() => import("@/pages/CohortDetail"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -31,6 +30,7 @@ export function AppRoutes() {
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/track" element={<Track />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/apply" element={<Apply />} />
           </Route>
@@ -42,8 +42,8 @@ export function AppRoutes() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/manage" element={<Manage />} />
-              <Route path="/institutions" element={<Institutions />} />
+              <Route path="/manage" element={<Navigate to="/dashboard?tab=overview" replace />} />
+              <Route path="/institutions" element={<Navigate to="/dashboard?tab=banks" replace />} />
               <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
             </Route>
           </Route>

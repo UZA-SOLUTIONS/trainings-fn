@@ -1,4 +1,5 @@
 import { api, type ApiResponse } from "./api";
+import type { Candidate, CandidateSummary } from "./candidateService";
 
 export type Cohort = {
   id: string;
@@ -10,6 +11,18 @@ export type Cohort = {
   end_date?: string | null;
   applications_open: boolean;
   partner_bank: string | null;
+  institution_id?: string | null;
+  notes?: string | null;
+};
+
+export type CreateCohortPayload = {
+  name: string;
+  code: string;
+  capacity?: number;
+  location?: string | null;
+  start_date?: string | null;
+  partner_bank?: string | null;
+  applications_open?: boolean;
   notes?: string | null;
 };
 
@@ -25,12 +38,7 @@ export async function getCohortOverview() {
   const { data } = await api.get<
     ApiResponse<{
       cohorts: Cohort[];
-      candidates: Array<{
-        id: string;
-        cohort_id: string;
-        status: string;
-        training_status: string;
-      }>;
+      candidates: CandidateSummary[];
     }>
   >("/cohorts/overview");
   return data.data;
@@ -38,12 +46,12 @@ export async function getCohortOverview() {
 
 export async function getCohort(id: string) {
   const { data } = await api.get<
-    ApiResponse<{ cohort: Cohort; candidates: Record<string, unknown>[] }>
+    ApiResponse<{ cohort: Cohort; candidates: Candidate[] }>
   >(`/cohorts/${id}`);
   return data.data;
 }
 
-export async function createCohort(payload: Partial<Cohort>) {
+export async function createCohort(payload: CreateCohortPayload) {
   const { data } = await api.post<ApiResponse<{ cohort: Cohort }>>("/cohorts", payload);
   return data.data.cohort;
 }

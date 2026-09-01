@@ -1,11 +1,19 @@
-﻿import { useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCohort } from "@/services/cohortService";
 import { updateCandidate } from "@/services/candidateService";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -15,6 +23,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { BANK_REQUIREMENTS, depositRequirement } from "@/constants/bank-requirements";
+import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Candidate {
   id: string;
@@ -74,12 +85,23 @@ interface Candidate {
   attendance_percentage?: number | null;
   exam_score?: number | null;
   instructor_notes?: string | null;
+  disqualification_reason?: string | null;
+  loan_review_status?: string | null;
+  bank_notes?: string | null;
   applied_at: string;
   [key: string]: unknown;
 }
 
 const STATUSES = ["enrolled", "waitlisted", "rejected", "withdrawn", "graduated"] as const;
 const TRAINING = ["not_started", "in_progress", "completed", "failed"] as const;
+const LOAN_STATUSES = [
+  "not_ready",
+  "pending",
+  "in_review",
+  "approved",
+  "declined",
+  "more_info_needed",
+] as const;
 
 const DOCS: Array<[string, string]> = BANK_REQUIREMENTS.map((r) => [
   r.key,
@@ -87,13 +109,29 @@ const DOCS: Array<[string, string]> = BANK_REQUIREMENTS.map((r) => [
 ]);
 
 function money(v: number | null | undefined) {
-  return v == null ? "â€”" : `${Number(v).toLocaleString("en-RW")} RWF`;
+  return v == null ? "—" : `${Number(v).toLocaleString("en-RW")} RWF`;
 }
 
 export default function CohortDetail() {
   const { cohortId } = useParams<{ cohortId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
+  const { can, isInstructor, isBankPartner } = useAuth();
+
+  useEffect(() => {
+    if (isBankPartner) {
+      navigate("/dashboard?tab=candidates", { replace: true });
+    }
+  }, [isBankPartner, navigate]);
+
+  if (isBankPartner) {
+    return <p className="text-base text-muted-foreground">Redirecting…</p>;
+  }
+  const canMembership = can("candidates.membership");
+  const canTraining = can("candidates.training");
+  const canDocuments = can("candidates.documents");
+  const canLoan = can("candidates.loan");
 
   const { data, isPending } = useQuery({
     queryKey: ["cohort", cohortId],
@@ -109,6 +147,7 @@ export default function CohortDetail() {
       toast.success("Candidate updated");
       queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
       queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -119,190 +158,418 @@ export default function CohortDetail() {
   const waiting = candidates.filter((c) => c.status === "waitlisted");
   const inactive = candidates.filter((c) => c.status === "rejected" || c.status === "withdrawn");
 
-  function Row({ c }: { c: Candidate }) {
-    const open = openId === c.id;
-    const docsDone = DOCS.filter(([k]) => c[k] === true).length;
+  function handleStatusChange(c: Candidate, value: string) {
+    if (value === "rejected" && isInstructor) {
+      const reason = window.prompt("Enter a training disqualification reason:");
+      if (!reason?.trim()) {
+        toast.error("A disqualification reason is required to reject a candidate");
+        return;
+      }
+      update.mutate({
+        id: c.id,
+        patch: { status: value, disqualification_reason: reason.trim() },
+      });
+      return;
+    }
+    update.mutate({ id: c.id, patch: { status: value } });
+  }
+
+  function CandidateTable({ rows, empty }: { rows: Candidate[]; empty: string }) {
+    if (rows.length === 0) {
+      return <Empty>{empty}</Empty>;
+    }
+
     return (
-      <Card className="border-border/70 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[190px]">
-            <p className="font-display text-sm font-bold">{c.candidate_code}</p>
-            <p className="text-sm text-muted-foreground">{c.full_name}</p>
-          </div>
-          <div className="min-w-[130px] text-sm text-muted-foreground">{c.phone}</div>
-          <Badge variant={c.status === "enrolled" ? "default" : "secondary"}>
-            {c.status}
-            {c.waitlist_position ? ` #${c.waitlist_position}` : ""}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Docs {docsDone}/{DOCS.length}
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <Select
-              value={c.status}
-              onValueChange={(v) => update.mutate({ id: c.id, patch: { status: v } })}
-            >
-              <SelectTrigger className="h-9 w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => setOpenId(open ? null : c.id)}>
-              {open ? "Hide" : "Details"}
-            </Button>
-          </div>
-        </div>
+      <Card className="overflow-hidden border-border/70 shadow-none">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Candidate ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Training</TableHead>
+              <TableHead>Docs</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((c) => {
+              const open = openId === c.id;
+              const docsDone = DOCS.filter(([k]) => c[k] === true).length;
+              return (
+                <Fragment key={c.id}>
+                  <TableRow>
+                    <TableCell className="font-display font-semibold">{c.candidate_code}</TableCell>
+                    <TableCell>{c.full_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.phone ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === "enrolled" ? "default" : "secondary"}>
+                        {c.status}
+                        {c.waitlist_position ? ` #${c.waitlist_position}` : ""}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.training_status}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {docsDone}/{DOCS.length}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canMembership && (
+                          <Select
+                            value={c.status}
+                            onValueChange={(v) => handleStatusChange(c, v)}
+                          >
+                            <SelectTrigger className="h-9 w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUSES.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {s}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOpenId(open ? null : c.id)}
+                        >
+                          {open ? "Hide" : "Details"}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {open && (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={7} className="bg-muted/20 p-0">
+                        <div className="grid gap-6 border-t border-border/60 p-5 md:grid-cols-3">
+                          <Detail title="Identity">
+                            <Field label="National ID" value={c.national_id} />
+                            <Field label="Date of birth" value={c.date_of_birth} />
+                            <Field label="Gender" value={c.gender} />
+                            <Field label="Email" value={c.email} />
+                            <Field
+                              label="Residence"
+                              value={
+                                [c.district, c.sector, c.cell].filter(Boolean).join(" / ") || null
+                              }
+                            />
+                            <Field label="Education" value={c.education_level} />
+                            <Field label="Language" value={c.preferred_language} />
+                            <Field label="Smartphone" value={c.has_smartphone ? "Yes" : "No"} />
+                          </Detail>
 
-        {open && (
-          <div className="mt-5 grid gap-6 border-t border-border/60 pt-5 md:grid-cols-3">
-            <Detail title="Identity">
-              <Field label="National ID" value={c.national_id} />
-              <Field label="Date of birth" value={c.date_of_birth} />
-              <Field label="Gender" value={c.gender} />
-              <Field label="Email" value={c.email} />
-              <Field
-                label="Residence"
-                value={[c.district, c.sector, c.cell].filter(Boolean).join(" / ") || null}
-              />
-              <Field label="Education" value={c.education_level} />
-              <Field label="Language" value={c.preferred_language} />
-              <Field label="Smartphone" value={c.has_smartphone ? "Yes" : "No"} />
-            </Detail>
+                          <Detail title="Driving">
+                            <Field label="Licence no." value={c.driving_license_number} />
+                            <Field label="Categories" value={c.license_categories} />
+                            <Field label="Issued" value={c.license_issue_date} />
+                            <Field
+                              label="Experience"
+                              value={`${c.years_driving_experience ?? "—"} yrs`}
+                            />
+                            <Field label="Association" value={c.taxi_association} />
+                            <Field label="Current plate" value={c.current_vehicle_plate} />
+                            <Field label="Driving for" value={c.currently_driving_for} />
+                          </Detail>
 
-            <Detail title="Driving">
-              <Field label="Licence no." value={c.driving_license_number} />
-              <Field label="Categories" value={c.license_categories} />
-              <Field label="Issued" value={c.license_issue_date} />
-              <Field label="Experience" value={`${c.years_driving_experience ?? "â€”"} yrs`} />
-              <Field label="Association" value={c.taxi_association} />
-              <Field label="Current plate" value={c.current_vehicle_plate} />
-              <Field label="Driving for" value={c.currently_driving_for} />
-            </Detail>
+                          <Detail title="Financing readiness">
+                            <Field label="Monthly income" value={money(c.monthly_income_rwf)} />
+                            <Field label="Daily takings" value={money(c.average_daily_earnings_rwf)} />
+                            <Field
+                              label="Bank"
+                              value={c.has_bank_account ? c.bank_name : "No account"}
+                            />
+                            <Field label="Account no." value={c.bank_account_number} />
+                            <Field
+                              label="Existing loan"
+                              value={
+                                c.has_existing_loan ? (c.existing_loan_details ?? "Yes") : "None"
+                              }
+                            />
+                            <Field label="Deposit ready" value={money(c.deposit_available_rwf)} />
+                            <Field
+                              label="UZA Access top-up"
+                              value={c.needs_uza_access_support ? "Yes" : "No"}
+                            />
+                            <Field
+                              label="Preferred term"
+                              value={`${c.preferred_term_years ?? "—"} yrs`}
+                            />
+                            <Field label="Payment route" value={c.preferred_financing} />
+                          </Detail>
 
-            <Detail title="Financing readiness">
-              <Field label="Monthly income" value={money(c.monthly_income_rwf)} />
-              <Field label="Daily takings" value={money(c.average_daily_earnings_rwf)} />
-              <Field label="Bank" value={c.has_bank_account ? c.bank_name : "No account"} />
-              <Field label="Account no." value={c.bank_account_number} />
-              <Field
-                label="Existing loan"
-                value={c.has_existing_loan ? (c.existing_loan_details ?? "Yes") : "None"}
-              />
-              <Field label="Deposit ready" value={money(c.deposit_available_rwf)} />
-              <Field label="UZA Access top-up" value={c.needs_uza_access_support ? "Yes" : "No"} />
-              <Field label="Preferred term" value={`${c.preferred_term_years ?? "â€”"} yrs`} />
-              <Field label="Payment route" value={c.preferred_financing} />
-            </Detail>
+                          <Detail title="Bank eligibility">
+                            <Field label="Marital status" value={c.marital_status} />
+                            <Field label="Spouse" value={c.spouse_name} />
+                            <Field
+                              label="Cooperative"
+                              value={
+                                c.is_cooperative_member
+                                  ? (c.cooperative_name ?? "Member")
+                                  : "Not a member"
+                              }
+                            />
+                            <Field
+                              label="Target vehicle price"
+                              value={money(c.target_vehicle_price_rwf)}
+                            />
+                            <Field
+                              label="Deposit required"
+                              value={
+                                c.target_vehicle_price_rwf
+                                  ? `${money(depositRequirement(Number(c.target_vehicle_price_rwf)).amount)} (${Math.round(
+                                      depositRequirement(Number(c.target_vehicle_price_rwf))
+                                        .percent * 100,
+                                    )}%)`
+                                  : "—"
+                              }
+                            />
+                            <Field
+                              label="Collateral offered"
+                              value={
+                                c.offers_collateral
+                                  ? `${money(c.collateral_value_rwf)} · ${c.collateral_description ?? ""}`
+                                  : "No"
+                              }
+                            />
+                            <Field
+                              label="CRB listing"
+                              value={
+                                c.listed_on_crb
+                                  ? (c.crb_resolution_notes ?? "Listed — must clear")
+                                  : "Clear"
+                              }
+                            />
+                            <Field label="Other loan bank" value={c.other_loan_bank} />
+                            <Field
+                              label="Separate repayment source"
+                              value={c.other_loan_repayment_source}
+                            />
+                            <Field
+                              label="Drove for another service"
+                              value={c.previously_drove_for_service ? "Yes" : "No"}
+                            />
+                          </Detail>
 
-            <Detail title="Bank eligibility">
-              <Field label="Marital status" value={c.marital_status} />
-              <Field label="Spouse" value={c.spouse_name} />
-              <Field
-                label="Cooperative"
-                value={c.is_cooperative_member ? (c.cooperative_name ?? "Member") : "Not a member"}
-              />
-              <Field label="Target vehicle price" value={money(c.target_vehicle_price_rwf)} />
-              <Field
-                label="Deposit required"
-                value={
-                  c.target_vehicle_price_rwf
-                    ? `${money(depositRequirement(Number(c.target_vehicle_price_rwf)).amount)} (${Math.round(
-                        depositRequirement(Number(c.target_vehicle_price_rwf)).percent * 100,
-                      )}%)`
-                    : "â€”"
-                }
-              />
-              <Field
-                label="Collateral offered"
-                value={
-                  c.offers_collateral
-                    ? `${money(c.collateral_value_rwf)} Â· ${c.collateral_description ?? ""}`
-                    : "No"
-                }
-              />
-              <Field
-                label="CRB listing"
-                value={c.listed_on_crb ? (c.crb_resolution_notes ?? "Listed â€” must clear") : "Clear"}
-              />
-              <Field label="Other loan bank" value={c.other_loan_bank} />
-              <Field label="Separate repayment source" value={c.other_loan_repayment_source} />
-              <Field
-                label="Drove for another service"
-                value={c.previously_drove_for_service ? "Yes" : "No"}
-              />
-            </Detail>
+                          <Detail title="Next of kin & guarantor">
+                            <Field
+                              label="Next of kin"
+                              value={[c.next_of_kin_name, c.next_of_kin_phone, c.next_of_kin_relationship]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            />
+                            <Field
+                              label="Guarantor"
+                              value={[c.guarantor_name, c.guarantor_phone, c.guarantor_occupation]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            />
+                          </Detail>
 
-            <Detail title="Next of kin & guarantor">
-              <Field
-                label="Next of kin"
-                value={[c.next_of_kin_name, c.next_of_kin_phone, c.next_of_kin_relationship]
-                  .filter(Boolean)
-                  .join(" Â· ")}
-              />
-              <Field
-                label="Guarantor"
-                value={[c.guarantor_name, c.guarantor_phone, c.guarantor_occupation]
-                  .filter(Boolean)
-                  .join(" Â· ")}
-              />
-            </Detail>
+                          <Detail title="Documents">
+                            <div className="space-y-2">
+                              {DOCS.map(([key, label]) => (
+                                <label key={key} className="flex items-center gap-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={c[key] === true}
+                                    disabled={!canDocuments}
+                                    onChange={(e) =>
+                                      update.mutate({
+                                        id: c.id,
+                                        patch: { [key]: e.target.checked },
+                                      })
+                                    }
+                                  />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+                          </Detail>
 
-            <Detail title="Documents">
-              <div className="space-y-2">
-                {DOCS.map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={c[key] === true}
-                      onChange={(e) =>
-                        update.mutate({
-                          id: c.id,
-                          patch: { [key]: e.target.checked },
-                        })
-                      }
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </Detail>
+                          {(canLoan || isBankPartner) && (
+                            <Detail title="Loan review">
+                              <div className="space-y-3">
+                                {canLoan ? (
+                                  <>
+                                    <div className="space-y-1.5">
+                                      <Label className="text-xs text-muted-foreground">
+                                        Loan status
+                                      </Label>
+                                      <Select
+                                        value={c.loan_review_status ?? "not_ready"}
+                                        onValueChange={(v) =>
+                                          update.mutate({
+                                            id: c.id,
+                                            patch: { loan_review_status: v },
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger className="h-9">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {LOAN_STATUSES.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                              {s.replaceAll("_", " ")}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <Label className="text-xs text-muted-foreground">
+                                        CRB resolution notes
+                                      </Label>
+                                      <Input
+                                        defaultValue={c.crb_resolution_notes ?? ""}
+                                        onBlur={(e) =>
+                                          update.mutate({
+                                            id: c.id,
+                                            patch: { crb_resolution_notes: e.target.value },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <Label className="text-xs text-muted-foreground">
+                                        Bank notes
+                                      </Label>
+                                      <Input
+                                        defaultValue={c.bank_notes ?? ""}
+                                        onBlur={(e) =>
+                                          update.mutate({
+                                            id: c.id,
+                                            patch: { bank_notes: e.target.value || null },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Field
+                                      label="Loan status"
+                                      value={c.loan_review_status?.replaceAll("_", " ")}
+                                    />
+                                    <Field label="CRB notes" value={c.crb_resolution_notes} />
+                                    <Field label="Bank notes" value={c.bank_notes} />
+                                  </>
+                                )}
+                              </div>
+                            </Detail>
+                          )}
 
-            <Detail title="Training">
-              <div className="space-y-3">
-                <Select
-                  value={c.training_status}
-                  onValueChange={(v) =>
-                    update.mutate({
-                      id: c.id,
-                      patch: { training_status: v },
-                    })
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRAINING.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Field label="Attendance" value={`${c.attendance_percentage ?? "â€”"}%`} />
-                <Field label="Exam score" value={`${c.exam_score ?? "â€”"}`} />
-                <Field label="Notes" value={c.instructor_notes} />
-                <Field label="Applied" value={new Date(c.applied_at).toLocaleDateString()} />
-              </div>
-            </Detail>
-          </div>
-        )}
+                          <Detail title="Training">
+                            <div className="space-y-3">
+                              {canTraining ? (
+                                <>
+                                  <Select
+                                    value={c.training_status}
+                                    onValueChange={(v) =>
+                                      update.mutate({
+                                        id: c.id,
+                                        patch: { training_status: v },
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {TRAINING.map((s) => (
+                                        <SelectItem key={s} value={s}>
+                                          {s}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">
+                                      Attendance %
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      defaultValue={c.attendance_percentage ?? ""}
+                                      onBlur={(e) =>
+                                        update.mutate({
+                                          id: c.id,
+                                          patch: {
+                                            attendance_percentage: e.target.value
+                                              ? Number(e.target.value)
+                                              : null,
+                                          },
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">
+                                      Exam score
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      defaultValue={c.exam_score ?? ""}
+                                      onBlur={(e) =>
+                                        update.mutate({
+                                          id: c.id,
+                                          patch: {
+                                            exam_score: e.target.value
+                                              ? Number(e.target.value)
+                                              : null,
+                                          },
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">Notes</Label>
+                                    <Input
+                                      defaultValue={c.instructor_notes ?? ""}
+                                      onBlur={(e) =>
+                                        update.mutate({
+                                          id: c.id,
+                                          patch: {
+                                            instructor_notes: e.target.value || null,
+                                          },
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <Field label="Status" value={c.training_status} />
+                                  <Field
+                                    label="Attendance"
+                                    value={`${c.attendance_percentage ?? "—"}%`}
+                                  />
+                                  <Field label="Exam score" value={`${c.exam_score ?? "—"}`} />
+                                  <Field label="Notes" value={c.instructor_notes} />
+                                </>
+                              )}
+                              <Field
+                                label="Applied"
+                                value={new Date(c.applied_at).toLocaleDateString()}
+                              />
+                            </div>
+                          </Detail>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
       </Card>
     );
   }
@@ -310,42 +577,30 @@ export default function CohortDetail() {
   return (
     <div>
       <Link
-        to="/dashboard"
-        className="inline-flex text-sm text-muted-foreground transition-colors hover:text-foreground"
+        to="/dashboard?tab=candidates"
+        className="inline-flex text-base text-muted-foreground transition-colors hover:text-foreground"
       >
-        ← All cohorts
+        ← Candidates
       </Link>
 
       <div className="mt-6">
-        {isPending && <p className="text-sm text-muted-foreground">Loading candidates…</p>}
+        {isPending && <p className="text-base text-muted-foreground">Loading candidates…</p>}
         {cohort && (
           <>
             <p className="text-eyebrow text-muted-foreground">{cohort.code}</p>
-            <h1 className="mt-2 font-display text-3xl font-bold">{cohort.name}</h1>
-            <p className="mt-2 text-muted-foreground">
-              {enrolled.length} of {cohort.capacity} seats taken · {waiting.length} on the waiting
-              list · {cohort.location ?? "Location TBC"}
-            </p>
+            <h1 className="mt-2 font-display text-4xl font-bold">{cohort.name}</h1>
 
             <Section title={`Enrolled (${enrolled.length})`}>
-              {enrolled.map((c) => (
-                <Row key={c.id} c={c} />
-              ))}
-              {enrolled.length === 0 && <Empty>No candidates enrolled yet.</Empty>}
+              <CandidateTable rows={enrolled} empty="No candidates enrolled yet." />
             </Section>
 
             <Section title={`Waiting list (${waiting.length})`}>
-              {waiting.map((c) => (
-                <Row key={c.id} c={c} />
-              ))}
-              {waiting.length === 0 && <Empty>Nobody is waiting for a seat.</Empty>}
+              <CandidateTable rows={waiting} empty="Nobody is waiting for a seat." />
             </Section>
 
             {inactive.length > 0 && (
               <Section title={`Rejected / withdrawn (${inactive.length})`}>
-                {inactive.map((c) => (
-                  <Row key={c.id} c={c} />
-                ))}
+                <CandidateTable rows={inactive} empty="" />
               </Section>
             )}
           </>
@@ -359,13 +614,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-10">
       <h2 className="text-eyebrow text-muted-foreground">{title}</h2>
-      <div className="mt-4 space-y-3">{children}</div>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
+  return <p className="text-base text-muted-foreground">{children}</p>;
 }
 
 function Detail({ title, children }: { title: string; children: ReactNode }) {
