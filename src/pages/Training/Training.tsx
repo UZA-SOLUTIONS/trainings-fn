@@ -4,6 +4,7 @@ import { FiArrowRight, FiMapPin, FiCalendar, FiClock, FiLayers } from "react-ico
 import { listCohorts } from "@/services/cohortService";
 import { listCourses } from "@/services/courseService";
 import { listModules, moduleAttachmentUrl } from "@/services/moduleService";
+import { PageHero } from "@/components/layout/PageHero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,30 +31,17 @@ export default function Training() {
 
   return (
     <main className="bg-muted/25">
-      <section className="border-b border-border/60 bg-background">
-        <div className="container-page py-10 sm:py-14">
-          <p className="text-eyebrow text-muted-foreground">Training programme</p>
-          <h1 className="mt-2 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Cohorts and modules for Tunga Taxi drivers
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            See open cohorts you can join, and the courses and modules covered before financing and
-            vehicle allocation.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link to="/apply">Apply for training</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <a href="#modules">View modules</a>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Training programme"
+        title="Cohorts and modules for Tunga Taxi drivers"
+        description="See open cohorts you can join, and the courses and modules covered before financing and vehicle allocation."
+        primary={{ label: "Apply for training", to: "/apply" }}
+        secondary={{ label: "View modules", href: "#modules" }}
+      />
 
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
-          <LoadingSpinner label="Loading training…" />
+          <LoadingSpinner label="Loading trainingΓÇª" />
         </div>
       ) : (
         <div className="container-page space-y-14 py-10 sm:py-14">
@@ -106,7 +94,7 @@ export default function Training() {
                         <li className="flex items-center gap-2">
                           <FiLayers className="shrink-0" aria-hidden />
                           Capacity {c.capacity}
-                          {c.partner_bank ? ` · ${c.partner_bank}` : ""}
+                          {c.partner_bank ? ` ┬╖ ${c.partner_bank}` : ""}
                         </li>
                       </ul>
                       <div className="mt-6">
@@ -300,3 +288,4 @@ export default function Training() {
     </main>
   );
 }
+

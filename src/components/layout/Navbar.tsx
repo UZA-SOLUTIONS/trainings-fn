@@ -5,15 +5,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/#programme", label: "Programme" },
+  { to: "/programme", label: "Programme" },
   { to: "/training", label: "Training" },
   { to: "/track", label: "Track ID" },
-  { href: "/#calculator", label: "Financing" },
-  { href: "/#offers", label: "Buy options" },
+  { to: "/financing", label: "Financing" },
+  { to: "/requirements", label: "Requirements" },
 ];
 
 /** Pages whose first viewport is a dark full-bleed hero — light nav chrome until scroll. */
-const DARK_HERO_PATHS = new Set(["/", "/track"]);
+const DARK_HERO_PATHS = new Set([
+  "/",
+  "/track",
+  "/programme",
+  "/financing",
+  "/training",
+  "/requirements",
+]);
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
@@ -71,39 +78,22 @@ export function Navbar() {
             onDarkHero ? "text-ink-foreground/75" : "text-muted-foreground",
           )}
         >
-          {links.map((l) =>
-            l.to ? (
-              <Link
-                key={l.label}
-                to={l.to}
-                className={cn(
-                  "whitespace-nowrap font-medium transition-colors",
-                  onDarkHero
-                    ? "hover:text-ink-foreground"
-                    : "hover:text-foreground",
-                  location.pathname === l.to &&
-                    (onDarkHero
-                      ? "font-semibold text-ink-foreground"
-                      : "font-semibold text-foreground"),
-                )}
-              >
-                {l.label}
-              </Link>
-            ) : (
-              <a
-                key={l.label}
-                href={l.href}
-                className={cn(
-                  "whitespace-nowrap font-medium transition-colors",
-                  onDarkHero
-                    ? "hover:text-ink-foreground"
-                    : "hover:text-foreground",
-                )}
-              >
-                {l.label}
-              </a>
-            ),
-          )}
+          {links.map((l) => (
+            <Link
+              key={l.label}
+              to={l.to}
+              className={cn(
+                "whitespace-nowrap font-medium transition-colors",
+                onDarkHero ? "hover:text-ink-foreground" : "hover:text-foreground",
+                location.pathname === l.to &&
+                  (onDarkHero
+                    ? "font-semibold text-ink-foreground"
+                    : "font-semibold text-foreground"),
+              )}
+            >
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -180,15 +170,9 @@ export function Navbar() {
 
               return (
                 <li key={l.label}>
-                  {l.to ? (
-                    <Link to={l.to} onClick={() => setOpen(false)} className={className}>
-                      {label}
-                    </Link>
-                  ) : (
-                    <a href={l.href} onClick={() => setOpen(false)} className={className}>
-                      {label}
-                    </a>
-                  )}
+                  <Link to={l.to} onClick={() => setOpen(false)} className={className}>
+                    {label}
+                  </Link>
                 </li>
               );
             })}

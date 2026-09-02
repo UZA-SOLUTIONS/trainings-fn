@@ -354,7 +354,7 @@ export default function Apply() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild className="bg-volt text-volt-foreground hover:bg-volt/90">
-                <Link to="/">Back to home</Link>
+                <Link to={`/track?id=${encodeURIComponent(result.code)}`}>Track your ID</Link>
               </Button>
               <Button
                 asChild
@@ -362,6 +362,13 @@ export default function Apply() {
                 className="border-white/25 bg-transparent text-ink-foreground hover:bg-white/10"
               >
                 <Link to="/requirements">Document checklist</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-white/25 bg-transparent text-ink-foreground hover:bg-white/10"
+              >
+                <Link to="/">Home</Link>
               </Button>
             </div>
           </div>

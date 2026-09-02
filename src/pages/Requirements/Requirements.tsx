@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHero } from "@/components/layout/PageHero";
 import { BANK_REQUIREMENTS, OBSTACLES, depositRequirement } from "@/constants/bank-requirements";
 import { formatRwf } from "@/utils/financing";
 
@@ -10,17 +11,17 @@ const EXAMPLES = [15_000_000, 25_000_000, 28_000_000];
 export default function Requirements() {
   return (
     <main className="bg-muted/30">
-      <div className="container-page py-10 sm:py-12">
-        <p className="text-eyebrow text-muted-foreground">Tunga Taxi</p>
-        <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl md:text-4xl">
-          What the bank needs from you
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-          Bring these to your instructor or upload them against your permanent candidate ID. Items
-          marked as conditional only apply to some drivers.
-        </p>
+      <PageHero
+        eyebrow="Bank documents"
+        title="What the bank needs from you"
+        description="Bring these to your instructor or upload them against your permanent candidate ID. Items marked as conditional only apply to some drivers."
+        primary={{ label: "Start your application", to: "/apply" }}
+        secondary={{ label: "See financing", to: "/financing" }}
+        compact
+      />
 
-        <ol className="mt-8 space-y-3">
+      <div className="container-page py-10 sm:py-12">
+        <ol className="space-y-3">
           {BANK_REQUIREMENTS.map((r, i) => (
             <li key={r.key}>
               <Card className="flex gap-4 border-border/70 p-5">
@@ -82,9 +83,14 @@ export default function Requirements() {
           </p>
         </Card>
 
-        <Button asChild size="lg" className="mt-8">
-          <Link to="/apply">Start your application</Link>
-        </Button>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button asChild size="lg">
+            <Link to="/apply">Start your application</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link to="/track">Track your ID</Link>
+          </Button>
+        </div>
       </div>
     </main>
   );

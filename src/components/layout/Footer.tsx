@@ -11,11 +11,11 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 const PROGRAMME = [
-  { href: "/#programme", label: "How it works" },
+  { to: "/programme", label: "How it works" },
   { to: "/training", label: "Cohorts & modules" },
-  { href: "/#calculator", label: "Financing" },
-  { href: "/#offers", label: "Buy options" },
-  { href: "/#partners", label: "Partners" },
+  { to: "/financing", label: "Financing" },
+  { to: "/financing#offers", label: "Buy options" },
+  { to: "/programme#partners", label: "Partners" },
 ];
 
 const DRIVERS = [
@@ -100,21 +100,12 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {PROGRAMME.map((item) => (
                   <li key={item.label}>
-                    {"to" in item && item.to ? (
-                      <Link
-                        to={item.to}
-                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                      >
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <a
-                        href={"href" in item ? item.href : "#"}
-                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                      >
-                        {item.label}
-                      </a>
-                    )}
+                    <Link
+                      to={item.to}
+                      className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                    >
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -127,21 +118,12 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {DRIVERS.map((item) => (
                   <li key={item.label}>
-                    {"href" in item ? (
-                      <a
-                        href={item.href}
-                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                      >
-                        {item.label}
-                      </a>
-                    ) : (
-                      <Link
-                        to={item.to}
-                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
+                    <Link
+                      to={item.to}
+                      className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                    >
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

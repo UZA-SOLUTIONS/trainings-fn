@@ -7,6 +7,8 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { LoadingSpinner } from "@/components/feedback/LoadingSpinner";
 
 const Home = lazy(() => import("@/pages/Home"));
+const Programme = lazy(() => import("@/pages/Programme"));
+const Financing = lazy(() => import("@/pages/Financing"));
 const Track = lazy(() => import("@/pages/Track"));
 const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
@@ -33,11 +35,15 @@ export function AppRoutes() {
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/programme" element={<Programme />} />
+            <Route path="/financing" element={<Financing />} />
             <Route path="/training" element={<Training />} />
             <Route path="/track" element={<Track />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/apply" element={<Apply />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
+
           <Route element={<AuthLayout />}>
             <Route path="/auth" element={<Login />} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
@@ -53,8 +59,6 @@ export function AppRoutes() {
               <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
             </Route>
           </Route>
-
-          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

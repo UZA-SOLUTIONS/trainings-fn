@@ -3,7 +3,14 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 /** Dark full-bleed heroes sit under the transparent navbar — no spacer. */
-const OVERLAY_PATHS = new Set(["/", "/track"]);
+const OVERLAY_PATHS = new Set([
+  "/",
+  "/track",
+  "/programme",
+  "/financing",
+  "/training",
+  "/requirements",
+]);
 
 export function MainLayout() {
   const { pathname } = useLocation();
@@ -12,7 +19,6 @@ export function MainLayout() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {/* Matches fixed navbar height: h-14 / sm:h-16 / md:h-[4.25rem] */}
       {!overlayHero && (
         <div className="h-14 sm:h-16 md:h-[4.25rem]" aria-hidden />
       )}
