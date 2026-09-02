@@ -12,7 +12,6 @@ import { CohortsPanel } from "@/components/dashboard/CohortsPanel";
 import { CandidatesPanel } from "@/components/dashboard/CandidatesPanel";
 import { LenderFilesPanel } from "@/components/dashboard/LenderFilesPanel";
 import { BanksPanel } from "@/components/dashboard/BanksPanel";
-import { ProfilePanel } from "@/components/dashboard/ProfilePanel";
 import { SettingsPanel } from "@/components/dashboard/SettingsPanel";
 import { isDashboardTab, type DashboardTab } from "@/components/dashboard/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,16 +23,21 @@ export default function Dashboard() {
   const [params, setParams] = useSearchParams();
   const { user, canAccessTab, isBankPartner } = useAuth();
   const rawTab = params.get("tab");
-  const tab: DashboardTab = isDashboardTab(rawTab) ? rawTab : "overview";
+  const tab: DashboardTab =
+    rawTab === "profile" ? "settings" : isDashboardTab(rawTab) ? rawTab : "overview";
   const needsData = DATA_TABS.includes(tab);
 
   useEffect(() => {
+    if (rawTab === "profile") {
+      setParams({ tab: "settings" }, { replace: true });
+      return;
+    }
     if (!user) return;
     if (!canAccessTab(tab)) {
       const fallback = defaultTabForRole(user.role);
       setParams({ tab: fallback }, { replace: true });
     }
-  }, [user, tab, canAccessTab, setParams]);
+  }, [user, tab, rawTab, canAccessTab, setParams]);
 
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["manage-overview", user?.role],
@@ -105,8 +109,6 @@ export default function Dashboard() {
       )}
 
       {tab === "banks" && <BanksPanel />}
-
-      {tab === "profile" && <ProfilePanel />}
 
       {tab === "settings" && <SettingsPanel />}
     </div>

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { FiCheck } from "react-icons/fi";
@@ -208,6 +208,7 @@ const STEPS = [
 ] as const;
 
 export default function Apply() {
+  const [params] = useSearchParams();
   const [form, setForm] = useState<FormState>(initial);
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Errors>({});
@@ -222,6 +223,12 @@ export default function Apply() {
     queryKey: ["open-cohorts"],
     queryFn: () => listCohorts({ open: true }),
   });
+
+  useEffect(() => {
+    const cohortId = params.get("cohort");
+    if (!cohortId || !cohorts?.some((c) => c.id === cohortId)) return;
+    setForm((f) => (f.cohort_id === cohortId ? f : { ...f, cohort_id: cohortId }));
+  }, [params, cohorts]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));

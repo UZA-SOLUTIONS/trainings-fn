@@ -10,6 +10,7 @@ const Home = lazy(() => import("@/pages/Home"));
 const Track = lazy(() => import("@/pages/Track"));
 const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
+const Training = lazy(() => import("@/pages/Training"));
 const Login = lazy(() => import("@/pages/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Courses = lazy(() => import("@/pages/Courses"));
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/training" element={<Training />} />
             <Route path="/track" element={<Track />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/apply" element={<Apply />} />

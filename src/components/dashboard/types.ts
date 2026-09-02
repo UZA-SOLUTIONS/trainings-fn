@@ -5,7 +5,6 @@ export type DashboardTab =
   | "modules"
   | "candidates"
   | "banks"
-  | "profile"
   | "settings";
 
 export const DASHBOARD_TABS: { id: DashboardTab; label: string }[] = [
@@ -15,7 +14,6 @@ export const DASHBOARD_TABS: { id: DashboardTab; label: string }[] = [
   { id: "modules", label: "Modules" },
   { id: "candidates", label: "Candidates" },
   { id: "banks", label: "Banks" },
-  { id: "profile", label: "Profile" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -27,7 +25,6 @@ export function isDashboardTab(value: string | null): value is DashboardTab {
     value === "modules" ||
     value === "candidates" ||
     value === "banks" ||
-    value === "profile" ||
     value === "settings"
   );
 }
@@ -37,5 +34,6 @@ export function dashboardTabFromPath(pathname: string, search: string): Dashboar
   if (pathname.startsWith("/modules")) return "modules";
   if (pathname.startsWith("/cohorts")) return "candidates";
   const raw = new URLSearchParams(search).get("tab");
+  if (raw === "profile") return "settings";
   return isDashboardTab(raw) ? raw : "overview";
 }

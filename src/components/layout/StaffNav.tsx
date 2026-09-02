@@ -8,7 +8,6 @@ import {
   FiBriefcase,
   FiBarChart2,
   FiUserCheck,
-  FiUser,
   FiSettings,
   FiBookOpen,
   FiLayers,
@@ -38,11 +37,8 @@ const WORKSPACE_NAV: {
 const ACCOUNT_NAV: {
   tab: DashboardTab;
   label: string;
-  icon: typeof FiUser;
-}[] = [
-  { tab: "profile", label: "Profile", icon: FiUser },
-  { tab: "settings", label: "Settings", icon: FiSettings },
-];
+  icon: typeof FiSettings;
+}[] = [{ tab: "settings", label: "Settings", icon: FiSettings }];
 
 export function StaffNav() {
   const { user, logout, canAccessTab, isBankPartner } = useAuth();
@@ -124,7 +120,7 @@ export function StaffNav() {
 
       <div className="mt-auto border-t border-sidebar-border px-4 py-4">
         <Link
-          to="/dashboard?tab=profile"
+          to="/dashboard?tab=settings"
           onClick={() => setOpen(false)}
           className="block rounded-xl px-2 py-2 transition-colors hover:bg-sidebar-accent"
         >

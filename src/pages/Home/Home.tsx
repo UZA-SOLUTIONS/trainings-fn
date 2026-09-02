@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { Link } from "react-router-dom";
 import { FiCheck, FiArrowRight } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,10 +142,10 @@ export default function Home() {
                 variant="outline"
                 className="h-10 border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:h-11"
               >
-                <a href="#programme" className="inline-flex items-center gap-2">
-                  How it works
+                <Link to="/training" className="inline-flex items-center gap-2">
+                  View cohorts & modules
                   <FiArrowRight aria-hidden />
-                </a>
+                </Link>
               </Button>
             </div>
           </div>
@@ -177,6 +178,15 @@ export default function Home() {
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground sm:mt-3">
                   {s.body}
                 </p>
+                {s.n === "02" && (
+                  <Link
+                    to="/training"
+                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    See cohorts & modules
+                    <FiArrowRight aria-hidden />
+                  </Link>
+                )}
               </article>
             </li>
           ))}

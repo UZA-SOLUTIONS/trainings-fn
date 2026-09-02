@@ -12,6 +12,7 @@ import { FaXTwitter } from "react-icons/fa6";
 
 const PROGRAMME = [
   { href: "/#programme", label: "How it works" },
+  { to: "/training", label: "Cohorts & modules" },
   { href: "/#calculator", label: "Financing" },
   { href: "/#offers", label: "Buy options" },
   { href: "/#partners", label: "Partners" },
@@ -19,6 +20,7 @@ const PROGRAMME = [
 
 const DRIVERS = [
   { to: "/apply", label: "Apply for training" },
+  { to: "/training", label: "Open cohorts" },
   { to: "/track", label: "Track your ID" },
   { to: "/requirements", label: "Requirements" },
   { to: "/auth", label: "Staff login" },
@@ -98,12 +100,21 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {PROGRAMME.map((item) => (
                   <li key={item.label}>
-                    <a
-                      href={item.href}
-                      className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
-                    >
-                      {item.label}
-                    </a>
+                    {"to" in item && item.to ? (
+                      <Link
+                        to={item.to}
+                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={"href" in item ? item.href : "#"}
+                        className="text-sm text-ink-foreground/75 transition-colors hover:text-volt"
+                      >
+                        {item.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

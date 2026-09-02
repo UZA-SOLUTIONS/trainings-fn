@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,14 +24,24 @@ import { roleLabel } from "@/lib/permissions";
 import { DASHBOARD_TABS, type DashboardTab } from "@/components/dashboard/types";
 import { toast } from "sonner";
 
-const WORKSPACE_TABS = DASHBOARD_TABS.filter(
-  (t) => t.id !== "profile" && t.id !== "settings",
-);
+const WORKSPACE_TABS = DASHBOARD_TABS.filter((t) => t.id !== "settings");
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-RW", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 export function SettingsPanel() {
   const navigate = useNavigate();
-  const { user, canAccessTab } = useAuth();
+  const { user, refreshUser, canAccessTab } = useAuth();
   const [prefs, setPrefs] = useState<DashboardPreferences>(() => loadDashboardPreferences());
+  const [fullName, setFullName] = useState(user?.full_name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [profileBusy, setProfileBusy] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,6 +52,29 @@ export function SettingsPanel() {
   useEffect(() => {
     saveDashboardPreferences(prefs);
   }, [prefs]);
+
+  useEffect(() => {
+    setFullName(user?.full_name ?? "");
+    setEmail(user?.email ?? "");
+  }, [user]);
+
+  async function handleProfileSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fullName.trim() || !email.trim()) {
+      toast.error("Name and email are required.");
+      return;
+    }
+    setProfileBusy(true);
+    try {
+      await authService.updateProfile(fullName.trim(), email.trim());
+      await refreshUser();
+      toast.success("Profile updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update profile");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,6 +112,72 @@ export function SettingsPanel() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Card className="border-border/70 p-6">
+          <p className="text-eyebrow text-muted-foreground">Your account</p>
+          <div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 font-display text-2xl font-bold text-primary">
+            {(user?.full_name || user?.email || "?").charAt(0).toUpperCase()}
+          </div>
+          <h2 className="mt-4 font-display text-2xl font-semibold">
+            {user?.full_name || "Staff member"}
+          </h2>
+          <p className="mt-1 text-base text-muted-foreground">{user?.email}</p>
+          {user?.role && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge>{roleLabel(user.role)}</Badge>
+            </div>
+          )}
+          <dl className="mt-6 space-y-3 text-base">
+            <div>
+              <dt className="text-eyebrow text-muted-foreground">Member since</dt>
+              <dd className="mt-1 font-medium">{formatDate(user?.created_at)}</dd>
+            </div>
+            <div>
+              <dt className="text-eyebrow text-muted-foreground">User ID</dt>
+              <dd className="mt-1 font-mono text-sm text-muted-foreground">{user?.id ?? "—"}</dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card className="border-border/70 p-6">
+          <h2 className="font-display text-xl font-semibold">Edit profile</h2>
+          <form className="mt-6 space-y-5" onSubmit={handleProfileSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Full name</Label>
+              <Input
+                id="profile-name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                maxLength={100}
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-email">Email</Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                maxLength={255}
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Input
+                value={user ? roleLabel(user.role) : "—"}
+                disabled
+                className="h-11"
+              />
+            </div>
+            <Button type="submit" disabled={profileBusy}>
+              {profileBusy ? "Saving…" : "Save profile"}
+            </Button>
+          </form>
+        </Card>
+
+        <Card className="border-border/70 p-6">
           <h2 className="font-display text-xl font-semibold">Workspace</h2>
           <div className="mt-6 space-y-6">
             <div className="space-y-2">
@@ -99,7 +199,15 @@ export function SettingsPanel() {
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={() => navigate(`/dashboard?tab=${prefs.defaultTab}`)}
+                onClick={() =>
+                  navigate(
+                    prefs.defaultTab === "courses"
+                      ? "/courses"
+                      : prefs.defaultTab === "modules"
+                        ? "/modules"
+                        : `/dashboard?tab=${prefs.defaultTab}`,
+                  )
+                }
               >
                 Open default page
               </Button>
@@ -167,20 +275,6 @@ export function SettingsPanel() {
               {passwordBusy ? "Updating…" : "Update password"}
             </Button>
           </form>
-        </Card>
-
-        <Card className="border-border/70 p-6 lg:col-span-2">
-          <h2 className="font-display text-xl font-semibold">Session</h2>
-          <dl className="mt-4 grid gap-4 text-base sm:grid-cols-2">
-            <div>
-              <dt className="text-eyebrow text-muted-foreground">Signed in as</dt>
-              <dd className="mt-1 font-medium">{user?.email ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-eyebrow text-muted-foreground">Role</dt>
-              <dd className="mt-1 font-medium">{user ? roleLabel(user.role) : "—"}</dd>
-            </div>
-          </dl>
         </Card>
       </div>
     </div>

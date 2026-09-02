@@ -25,10 +25,12 @@ export type CreateModulePayload = {
   status?: ModuleStatus;
 };
 
-export async function listModules(opts: { courseId?: string } = {}) {
-  const params = opts.courseId ? { course_id: opts.courseId } : undefined;
+export async function listModules(opts: { courseId?: string; active?: boolean } = {}) {
+  const params: Record<string, string> = {};
+  if (opts.courseId) params.course_id = opts.courseId;
+  if (opts.active) params.active = "true";
   const { data } = await api.get<ApiResponse<{ modules: TrainingModule[] }>>("/modules", {
-    params,
+    params: Object.keys(params).length ? params : undefined,
   });
   return data.data.modules;
 }

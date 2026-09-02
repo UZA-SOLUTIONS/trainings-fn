@@ -20,8 +20,9 @@ export type CreateCoursePayload = {
   status?: CourseStatus;
 };
 
-export async function listCourses() {
-  const { data } = await api.get<ApiResponse<{ courses: Course[] }>>("/courses");
+export async function listCourses(opts: { active?: boolean } = {}) {
+  const params = opts.active ? { active: "true" } : undefined;
+  const { data } = await api.get<ApiResponse<{ courses: Course[] }>>("/courses", { params });
   return data.data.courses;
 }
 

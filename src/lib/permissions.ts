@@ -21,7 +21,6 @@ const TAB_ACCESS: Record<DashboardTab, StaffUser["role"][]> = {
   modules: ["admin", "instructor"],
   candidates: ["admin", "instructor", "bank_partner"],
   banks: ["admin"],
-  profile: ["admin", "instructor", "bank_partner"],
   settings: ["admin", "instructor", "bank_partner"],
 };
 
