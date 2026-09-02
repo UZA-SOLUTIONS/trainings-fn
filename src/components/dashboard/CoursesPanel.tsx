@@ -56,7 +56,8 @@ function statusBadge(status: Course["status"]) {
 
 export function CoursesPanel() {
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
+  const canWrite = can("courses.write");
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const { data: courses = [], isPending, isError, error, refetch } = useQuery({
@@ -127,14 +128,14 @@ export function CoursesPanel() {
             Create, update, and manage training courses in the programme.
           </p>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <Button type="button" onClick={() => setDraft({ ...BLANK })}>
             Add course
           </Button>
         )}
       </div>
 
-      {draft && isAdmin && (
+      {draft && canWrite && (
         <Card className="mt-6 border-border/70 p-6">
           <h2 className="font-display text-xl font-semibold">
             {draft.id ? "Edit course" : "Create a course"}
@@ -230,13 +231,13 @@ export function CoursesPanel() {
                 <TableHead>Duration</TableHead>
                 <TableHead>Modules</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending && (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={canWrite ? 6 : 5} className="py-8 text-center text-muted-foreground">
                     Loading courses…
                   </TableCell>
                 </TableRow>
@@ -260,7 +261,7 @@ export function CoursesPanel() {
                     </TableCell>
                     <TableCell className="tabular-nums">{c.module_count ?? 0}</TableCell>
                     <TableCell>{statusBadge(c.status)}</TableCell>
-                    {isAdmin && (
+                    {canWrite && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => startEdit(c)}>
@@ -284,7 +285,7 @@ export function CoursesPanel() {
               {!isPending && courses.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={isAdmin ? 6 : 5}
+                    colSpan={canWrite ? 6 : 5}
                     className="py-10 text-center text-muted-foreground"
                   >
                     No courses yet.

@@ -3,12 +3,15 @@ import type { DashboardTab } from "@/components/dashboard/types";
 
 export type PermissionAction =
   | "cohorts.write"
+  | "courses.write"
+  | "modules.write"
   | "institutions.write"
   | "candidates.read"
   | "candidates.membership"
   | "candidates.training"
   | "candidates.documents"
   | "candidates.loan"
+  | "candidates.delete"
   | "staff.manage";
 
 const TAB_ACCESS: Record<DashboardTab, StaffUser["role"][]> = {
@@ -40,10 +43,14 @@ export function can(user: StaffUser | null, action: PermissionAction): boolean {
   if (user.role === "admin") return true;
 
   switch (action) {
-    case "cohorts.write":
     case "institutions.write":
     case "staff.manage":
       return false;
+    case "cohorts.write":
+    case "courses.write":
+    case "modules.write":
+    case "candidates.delete":
+      return user.role === "instructor";
     case "candidates.read":
       return user.role === "instructor" || user.role === "bank_partner";
     case "candidates.membership":

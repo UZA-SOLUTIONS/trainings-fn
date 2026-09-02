@@ -61,7 +61,8 @@ function statusBadge(status: TrainingModule["status"]) {
 
 export function ModulesPanel() {
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
+  const canWrite = can("modules.write");
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const {
@@ -141,14 +142,14 @@ export function ModulesPanel() {
             Create, update, and manage modules delivered within each course.
           </p>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <Button type="button" onClick={() => setDraft({ ...BLANK })}>
             Add module
           </Button>
         )}
       </div>
 
-      {draft && isAdmin && (
+      {draft && canWrite && (
         <Card className="mt-6 border-border/70 p-6">
           <h2 className="font-display text-xl font-semibold">
             {draft.id ? "Edit module" : "Create a module"}
@@ -277,13 +278,13 @@ export function ModulesPanel() {
                 <TableHead>Code</TableHead>
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending && (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 6} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={canWrite ? 7 : 6} className="py-8 text-center text-muted-foreground">
                     Loading modules…
                   </TableCell>
                 </TableRow>
@@ -313,7 +314,7 @@ export function ModulesPanel() {
                       {m.duration_hours}
                     </TableCell>
                     <TableCell>{statusBadge(m.status)}</TableCell>
-                    {isAdmin && (
+                    {canWrite && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => startEdit(m)}>
@@ -337,7 +338,7 @@ export function ModulesPanel() {
               {!isPending && modules.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={isAdmin ? 7 : 6}
+                    colSpan={canWrite ? 7 : 6}
                     className="py-10 text-center text-muted-foreground"
                   >
                     No modules yet.

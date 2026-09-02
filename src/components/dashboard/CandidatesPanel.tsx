@@ -96,10 +96,11 @@ export function CandidatesPanel({
   candidates: Candidate[];
 }) {
   const queryClient = useQueryClient();
-  const { can, isAdmin, isBankPartner, isInstructor } = useAuth();
+  const { can, isBankPartner, isInstructor } = useAuth();
   const canMembership = can("candidates.membership");
   const canTraining = can("candidates.training");
   const canLoan = can("candidates.loan");
+  const canDelete = can("candidates.delete");
 
   const [search, setSearch] = useState("");
   const [cohortFilter, setCohortFilter] = useState<string>("all");
@@ -379,7 +380,7 @@ export function CandidatesPanel({
                 )}
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {isAdmin && (
+                    {canDelete && (
                       <Button
                         type="button"
                         size="sm"

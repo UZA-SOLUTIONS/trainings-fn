@@ -59,7 +59,8 @@ export function CohortsPanel({
   candidates: Candidate[];
 }) {
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
+  const canWrite = can("cohorts.write");
   const [draft, setDraft] = useState<Draft | null>(null);
 
   function invalidate() {
@@ -134,14 +135,14 @@ export function CohortsPanel({
           <p className="text-eyebrow text-muted-foreground">Training</p>
           <h1 className="mt-1 font-display text-4xl font-bold">Cohorts</h1>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <Button type="button" onClick={() => setDraft({ ...BLANK })}>
             Add cohort
           </Button>
         )}
       </div>
 
-      {draft && isAdmin && (
+      {draft && canWrite && (
         <Card className="mt-6 border-border/70 p-6">
           <h2 className="font-display text-xl font-semibold">
             {draft.id ? "Edit cohort" : "Create a cohort"}
@@ -239,7 +240,7 @@ export function CohortsPanel({
               <TableHead>Seats</TableHead>
               <TableHead>Waiting</TableHead>
               <TableHead>Status</TableHead>
-              {isAdmin && <TableHead>Applications</TableHead>}
+              {canWrite && <TableHead>Applications</TableHead>}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -277,7 +278,7 @@ export function CohortsPanel({
                       {c.applications_open ? "Open" : "Closed"}
                     </Badge>
                   </TableCell>
-                  {isAdmin && (
+                  {canWrite && (
                     <TableCell>
                       <Switch
                         checked={c.applications_open}
@@ -288,7 +289,7 @@ export function CohortsPanel({
                   )}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {isAdmin && (
+                      {canWrite && (
                         <>
                           <Button type="button" variant="outline" size="sm" onClick={() => startEdit(c)}>
                             Edit
@@ -316,7 +317,7 @@ export function CohortsPanel({
             {cohorts.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={isAdmin ? 9 : 8}
+                  colSpan={canWrite ? 9 : 8}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No cohorts yet.
