@@ -5,20 +5,27 @@ import {
   CandidateTrackSearch,
   friendlyTrackError,
 } from "@/components/home/CandidateTracker";
-import { trackCandidate, type CandidateTrackView } from "@/services/candidateService";
+import { BankTrackResult } from "@/components/home/BankTrackResult";
+import {
+  trackLookup,
+  type BankTrackView,
+  type CandidateTrackView,
+} from "@/services/candidateService";
 import { LoadingSpinner } from "@/components/feedback/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 
 export default function Track() {
   const [params, setParams] = useSearchParams();
-  const candidateId = params.get("id")?.trim().toUpperCase() ?? "";
+  const lookupId = params.get("id")?.trim().toUpperCase() ?? "";
   const [track, setTrack] = useState<CandidateTrackView | null>(null);
+  const [bank, setBank] = useState<BankTrackView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!candidateId) {
+    if (!lookupId) {
       setTrack(null);
+      setBank(null);
       setError(null);
       setLoading(false);
       return;
@@ -28,16 +35,22 @@ export default function Track() {
     setLoading(true);
     setError(null);
 
-    trackCandidate(candidateId)
-      .then((data) => {
-        if (!cancelled) {
-          setTrack(data);
-          setError(null);
+    trackLookup(lookupId)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.type === "bank") {
+          setBank(result.bank);
+          setTrack(null);
+        } else {
+          setTrack(result.track);
+          setBank(null);
         }
+        setError(null);
       })
       .catch((err) => {
         if (!cancelled) {
           setTrack(null);
+          setBank(null);
           setError(friendlyTrackError(err));
         }
       })
@@ -48,7 +61,7 @@ export default function Track() {
     return () => {
       cancelled = true;
     };
-  }, [candidateId]);
+  }, [lookupId]);
 
   function handleSearch(code: string) {
     setParams({ id: code.trim().toUpperCase() });
@@ -57,6 +70,7 @@ export default function Track() {
   function clearSearch() {
     setParams({});
     setTrack(null);
+    setBank(null);
     setError(null);
   }
 
@@ -82,40 +96,18 @@ export default function Track() {
         />
 
         <div className="relative container-page w-full">
-          {track ? (
-            <div className="flex max-w-2xl flex-wrap items-end justify-between gap-5">
-              <div>
-                <p className="text-eyebrow text-volt">Track your application</p>
-                <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
-                  {track.full_name}
-                </h1>
-                <p className="mt-1 font-display text-lg font-semibold text-volt sm:text-xl">
-                  {track.candidate_code}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10"
-                onClick={clearSearch}
-              >
-                Search another ID
-              </Button>
-            </div>
-          ) : (
-            <CandidateTrackSearch
-              variant="page"
-              defaultCode={candidateId}
-              onSubmitCode={handleSearch}
-            />
-          )}
+          <CandidateTrackSearch
+            variant="page"
+            defaultCode={lookupId}
+            onSubmitCode={handleSearch}
+          />
         </div>
       </section>
 
       <section className="container-page section-y">
         {loading && (
           <div className="flex min-h-[16rem] items-center justify-center">
-            <LoadingSpinner label="Loading your application…" />
+            <LoadingSpinner label="Loading…" />
           </div>
         )}
 
@@ -129,10 +121,11 @@ export default function Track() {
         )}
 
         {!loading && !error && track && <CandidateTrackResult track={track} />}
+        {!loading && !error && bank && <BankTrackResult bank={bank} />}
 
-        {!loading && !error && !track && !candidateId && (
+        {!loading && !error && !track && !bank && !lookupId && (
           <p className="text-center text-sm text-muted-foreground">
-            Enter your candidate ID above to see training, documents, financing, and approvals.
+            Enter a candidate ID (UZA-2026-00001) or bank ID (UZA-BANK-2026-00001) to view progress.
           </p>
         )}
       </section>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FiCheck, FiAlertCircle, FiClock, FiSearch } from "react-icons/fi";
 import {
-  trackCandidate,
+  trackLookup,
   type CandidateTrackView,
   type TrackMilestoneStatus,
 } from "@/services/candidateService";
@@ -54,43 +54,66 @@ function milestoneTone(status: TrackMilestoneStatus) {
 
 export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
   return (
-    <div className="space-y-6">
-      <Card className="border-border/70 p-5 sm:p-6">
+    <div className="space-y-8">
+      <Card className="border-border/70 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-eyebrow text-muted-foreground">Your application</p>
-            <h3 className="mt-1 font-display text-2xl font-bold tracking-tight">{track.full_name}</h3>
-            <p className="mt-1 font-display text-sm font-semibold text-primary">{track.candidate_code}</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Your application
+            </p>
+            <h3 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              {track.full_name}
+            </h3>
+            <p className="mt-2 font-display text-base font-semibold text-primary sm:text-lg">
+              {track.candidate_code}
+            </p>
           </div>
-          <Badge variant={track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"}>
+          <Badge
+            variant={
+              track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
+            }
+            className="px-3 py-1 text-sm"
+          >
             {STATUS_LABELS[track.status] ?? track.status}
             {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
           </Badge>
         </div>
 
         {track.cohort && (
-          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 lg:grid-cols-4 sm:text-lg">
             <div>
-              <dt className="text-eyebrow text-muted-foreground">Cohort</dt>
-              <dd className="mt-1 font-medium">{track.cohort.name}</dd>
+              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Cohort
+              </dt>
+              <dd className="mt-1.5 font-semibold">{track.cohort.name}</dd>
             </div>
             <div>
-              <dt className="text-eyebrow text-muted-foreground">Start</dt>
-              <dd className="mt-1 font-medium">{track.cohort.start_date ?? "To be confirmed"}</dd>
+              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Start
+              </dt>
+              <dd className="mt-1.5 font-semibold">
+                {track.cohort.start_date ?? "To be confirmed"}
+              </dd>
             </div>
             <div>
-              <dt className="text-eyebrow text-muted-foreground">Location</dt>
-              <dd className="mt-1 font-medium">{track.cohort.location ?? "TBC"}</dd>
+              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Location
+              </dt>
+              <dd className="mt-1.5 font-semibold">{track.cohort.location ?? "TBC"}</dd>
             </div>
             <div>
-              <dt className="text-eyebrow text-muted-foreground">Partner bank</dt>
-              <dd className="mt-1 font-medium">{track.cohort.partner_bank ?? "Assigned after review"}</dd>
+              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Partner bank
+              </dt>
+              <dd className="mt-1.5 font-semibold">
+                {track.cohort.partner_bank ?? "Assigned after review"}
+              </dd>
             </div>
           </dl>
         )}
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          Current stage: <span className="font-medium text-foreground">{track.current_stage}</span>
+        <p className="mt-5 text-base text-muted-foreground sm:text-lg">
+          Current stage: <span className="font-semibold text-foreground">{track.current_stage}</span>
           {" · "}
           Applied {new Date(track.applied_at).toLocaleDateString("en-RW")}
         </p>
@@ -98,26 +121,46 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
 
       <TrackVisualDashboard track={track} />
 
-      <Card className="border-border/70 p-5 sm:p-6">
-        <p className="text-eyebrow text-muted-foreground">Programme progress</p>
-        <ol className="mt-4 space-y-3">
+      <Card className="border-border/70 p-6 sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Programme progress
+        </p>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl">
+              {track.milestones.filter((m) => m.status === "complete").length}
+              <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">
+                /{track.milestones.length}
+              </span>
+            </p>
+            <p className="mt-2 text-base text-muted-foreground">
+              Current stage:{" "}
+              <span className="font-semibold text-foreground">{track.current_stage}</span>
+            </p>
+          </div>
+        </div>
+        <ol className="mt-6 divide-y divide-border/60 border-t border-border/60">
           {track.milestones.map((m, i) => {
             const Icon = milestoneIcon(m.status);
             return (
-              <li key={m.id} className="flex items-start gap-3">
+              <li key={m.id} className="flex items-center gap-4 py-3.5">
                 <span
                   className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm",
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-base",
                     milestoneTone(m.status),
                   )}
                 >
-                  <Icon aria-hidden size={14} />
+                  <Icon aria-hidden size={20} />
                 </span>
-                <div className="min-w-0 flex-1 pt-0.5">
-                  <p className="text-sm font-medium">{m.label}</p>
-                  <p className="text-xs capitalize text-muted-foreground">{m.status.replace(/_/g, " ")}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-semibold sm:text-lg">{m.label}</p>
+                  <p className="mt-0.5 text-sm capitalize text-muted-foreground sm:text-base">
+                    {m.status.replace(/_/g, " ")}
+                  </p>
                 </div>
-                <span className="text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                <span className="font-display text-2xl font-bold tabular-nums text-muted-foreground">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
               </li>
             );
           })}
@@ -125,192 +168,235 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/70 p-5 sm:p-6">
-          <p className="text-eyebrow text-muted-foreground">Training</p>
-          <div className="mt-4 space-y-4">
+        <Card className="border-border/70 p-6 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Training
+          </p>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="mb-1.5 flex justify-between text-xs">
-                <span className="text-muted-foreground">Overall readiness</span>
-                <span className="font-medium">
-                  {track.training.status === "not_started"
-                    ? "Not started"
-                    : track.training.status === "completed"
-                      ? "Completed"
-                      : `${track.training.attendance_percentage ?? 0}% attendance`}
-                </span>
-              </div>
-              <Progress
-                value={
-                  track.training.status === "completed"
-                    ? 100
-                    : track.training.status === "not_started"
-                      ? 0
-                      : track.training.attendance_percentage ?? 15
-                }
-                className="h-2.5 [&>div]:bg-volt"
-              />
+              <p className="font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl">
+                {track.training.status === "completed"
+                  ? "100"
+                  : track.training.status === "not_started"
+                    ? "0"
+                    : String(track.training.attendance_percentage ?? 0)}
+                <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">%</span>
+              </p>
+              <p className="mt-2 text-base text-muted-foreground">
+                {TRAINING_LABELS[track.training.status] ?? track.training.status} · overall readiness
+              </p>
             </div>
-            {track.training.exam_score != null && (
-              <div>
-                <div className="mb-1.5 flex justify-between text-xs">
-                  <span className="text-muted-foreground">Exam score</span>
-                  <span className="font-medium">{track.training.exam_score}%</span>
-                </div>
-                <Progress value={track.training.exam_score} className="h-2.5" />
-              </div>
-            )}
           </div>
-          <dl className="mt-4 space-y-3 border-t border-border/60 pt-4 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Status</dt>
-              <dd className="font-medium">{TRAINING_LABELS[track.training.status] ?? track.training.status}</dd>
+          <Progress
+            value={
+              track.training.status === "completed"
+                ? 100
+                : track.training.status === "not_started"
+                  ? 0
+                  : track.training.attendance_percentage ?? 15
+            }
+            className="mt-5 h-3.5 [&>div]:bg-volt"
+          />
+          <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Status</dt>
+              <dd className="font-display text-xl font-bold sm:text-2xl">
+                {TRAINING_LABELS[track.training.status] ?? track.training.status}
+              </dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Attendance</dt>
-              <dd className="font-medium">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Attendance</dt>
+              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
                 {track.training.attendance_percentage != null
                   ? `${track.training.attendance_percentage}%`
                   : "—"}
               </dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Exam score</dt>
-              <dd className="font-medium">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Exam score</dt>
+              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
                 {track.training.exam_score != null ? `${track.training.exam_score}%` : "—"}
               </dd>
             </div>
           </dl>
         </Card>
 
-        <Card className="border-border/70 p-5 sm:p-6">
-          <div className="flex items-end justify-between gap-3">
-            <p className="text-eyebrow text-muted-foreground">Financing</p>
-            <span className="text-sm font-medium">{track.financing.preferred_financing ?? "—"}</span>
+        <Card className="border-border/70 p-6 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Financing
+          </p>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              {(() => {
+                const required = track.financing.deposit_required_rwf;
+                const ready = track.financing.deposit_available_rwf;
+                const pct =
+                  required && ready != null
+                    ? Math.min(100, Math.round((ready / required) * 100))
+                    : null;
+                return (
+                  <>
+                    <p
+                      className={cn(
+                        "font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl",
+                        pct != null && pct >= 100 ? "text-primary" : pct != null && pct < 50 ? "text-destructive" : "",
+                      )}
+                    >
+                      {pct != null ? pct : "—"}
+                      {pct != null && (
+                        <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">
+                          %
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-2 text-base text-muted-foreground">
+                      deposit vs required · {track.financing.preferred_financing ?? "—"}
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
           </div>
-          <dl className="mt-4 space-y-3 text-sm">
-            {track.financing.deposit_required_rwf != null && track.financing.deposit_available_rwf != null && (
-              <div>
-                <div className="mb-1.5 flex justify-between text-xs">
-                  <span className="text-muted-foreground">Deposit vs required</span>
-                  <span className="font-medium">
-                    {Math.min(
-                      100,
-                      Math.round(
-                        (track.financing.deposit_available_rwf / track.financing.deposit_required_rwf) *
-                          100,
-                      ),
-                    )}
-                    %
-                  </span>
-                </div>
-                <Progress
-                  value={Math.min(
+          {track.financing.deposit_required_rwf != null &&
+            track.financing.deposit_available_rwf != null && (
+              <Progress
+                value={Math.min(
+                  100,
+                  (track.financing.deposit_available_rwf / track.financing.deposit_required_rwf) *
                     100,
-                    (track.financing.deposit_available_rwf / track.financing.deposit_required_rwf) * 100,
-                  )}
-                  className="h-2.5"
-                />
-              </div>
+                )}
+                className="mt-5 h-3.5"
+              />
             )}
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Term</dt>
-              <dd className="font-medium">
+          <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Term</dt>
+              <dd className="font-display text-xl font-bold sm:text-2xl">
                 {track.financing.preferred_term_years != null
-                  ? `${track.financing.preferred_term_years} years`
+                  ? `${track.financing.preferred_term_years} yrs`
                   : "—"}
               </dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Target vehicle</dt>
-              <dd className="font-medium">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Target vehicle</dt>
+              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
                 {track.financing.target_vehicle_price_rwf
-                  ? formatRwf(track.financing.target_vehicle_price_rwf)
+                  ? formatRwf(track.financing.target_vehicle_price_rwf, { compact: true })
                   : "—"}
               </dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Deposit ready</dt>
-              <dd className="font-medium">
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">Deposit ready</dt>
+              <dd className="font-display text-xl font-bold tabular-nums text-primary sm:text-2xl">
                 {track.financing.deposit_available_rwf != null
-                  ? formatRwf(track.financing.deposit_available_rwf)
+                  ? formatRwf(track.financing.deposit_available_rwf, { compact: true })
                   : "—"}
               </dd>
             </div>
             {track.financing.deposit_required_rwf != null && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Deposit required</dt>
-                <dd className="font-medium">
-                  {formatRwf(track.financing.deposit_required_rwf)}
-                  {track.financing.deposit_required_percent != null &&
-                    ` (${Math.round(track.financing.deposit_required_percent * 100)}%)`}
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="text-base text-muted-foreground">Deposit required</dt>
+                <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
+                  {formatRwf(track.financing.deposit_required_rwf, { compact: true })}
+                  {track.financing.deposit_required_percent != null && (
+                    <span className="ml-1 text-base font-semibold text-muted-foreground">
+                      ({Math.round(track.financing.deposit_required_percent * 100)}%)
+                    </span>
+                  )}
                 </dd>
               </div>
             )}
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">UZA Access top-up</dt>
-              <dd className="font-medium">
-                {track.financing.needs_uza_access_support ? "Requested" : "Not requested"}
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-base text-muted-foreground">UZA Access top-up</dt>
+              <dd
+                className={cn(
+                  "font-display text-xl font-bold sm:text-2xl",
+                  track.financing.needs_uza_access_support && "text-foreground",
+                )}
+              >
+                {track.financing.needs_uza_access_support ? "Requested" : "No"}
               </dd>
             </div>
           </dl>
         </Card>
       </div>
 
-      <Card className="border-border/70 p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <Card className="border-border/70 p-6 sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Bank documents
+        </p>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-eyebrow text-muted-foreground">Bank documents</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {track.documents_summary.complete} of {track.documents_summary.required} required items on file
+            <p
+              className={cn(
+                "font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl",
+                track.documents_summary.percent >= 100
+                  ? "text-primary"
+                  : track.documents_summary.percent === 0
+                    ? "text-destructive"
+                    : "",
+              )}
+            >
+              {track.documents_summary.percent}
+              <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">%</span>
+            </p>
+            <p className="mt-2 text-base text-muted-foreground">
+              {track.documents_summary.complete} of {track.documents_summary.required} required on
+              file
             </p>
           </div>
-          <span className="font-display text-2xl font-bold">{track.documents_summary.percent}%</span>
-        </div>
-        <Progress value={track.documents_summary.percent} className="mt-4 h-3" />
-        <div className="mt-5 grid gap-2 sm:grid-cols-3">
-          {[
-            {
-              label: "Received",
-              count: track.documents.filter((d) => d.complete).length,
-              className: "bg-primary",
-            },
-            {
-              label: "Needed",
-              count: track.documents.filter((d) => !d.complete && d.required).length,
-              className: "bg-destructive",
-            },
-            {
-              label: "Optional",
-              count: track.documents.filter((d) => !d.complete && !d.required).length,
-              className: "bg-muted-foreground/40",
-            },
-          ].map((bucket) => (
-            <div key={bucket.label} className="rounded-lg border border-border/60 px-3 py-2.5">
-              <div className="flex items-baseline justify-between gap-2 text-xs">
-                <span className="text-muted-foreground">{bucket.label}</span>
-                <span className="font-display text-lg font-bold">{bucket.count}</span>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            {[
+              {
+                label: "Received",
+                count: track.documents.filter((d) => d.complete).length,
+                color: "text-primary",
+              },
+              {
+                label: "Needed",
+                count: track.documents.filter((d) => !d.complete && d.required).length,
+                color: "text-destructive",
+              },
+              {
+                label: "Optional",
+                count: track.documents.filter((d) => !d.complete && !d.required).length,
+                color: "",
+              },
+            ].map((bucket) => (
+              <div key={bucket.label}>
+                <p className={cn("font-display text-3xl font-bold tabular-nums", bucket.color)}>
+                  {bucket.count}
+                </p>
+                <p className="text-xs text-muted-foreground sm:text-sm">{bucket.label}</p>
               </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn("h-full rounded-full", bucket.className)}
-                  style={{
-                    width: `${track.documents.length ? (bucket.count / track.documents.length) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <ul className="mt-5 divide-y divide-border/60">
+        <Progress value={track.documents_summary.percent} className="mt-5 h-3.5" />
+        <ul className="mt-6 divide-y divide-border/60 border-t border-border/60">
           {track.documents.map((doc) => (
-            <li key={doc.key} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-              <span className={doc.complete ? "text-foreground" : "text-muted-foreground"}>
+            <li
+              key={doc.key}
+              className="flex items-center justify-between gap-4 py-3.5 text-base sm:text-lg"
+            >
+              <span
+                className={cn(
+                  "min-w-0",
+                  doc.complete ? "font-semibold text-foreground" : "text-muted-foreground",
+                )}
+              >
                 {doc.label}
                 {doc.optional_later && (
-                  <span className="ml-1 text-xs text-muted-foreground">(can come later)</span>
+                  <span className="ml-1.5 text-sm text-muted-foreground">(can come later)</span>
                 )}
               </span>
-              <Badge variant={doc.complete ? "default" : "secondary"}>
+              <Badge
+                variant={doc.complete ? "default" : "secondary"}
+                className={cn(
+                  "shrink-0 px-2.5 py-1 text-sm font-semibold",
+                  !doc.complete && doc.required && "bg-destructive/10 text-destructive hover:bg-destructive/10",
+                )}
+              >
                 {doc.complete ? "Received" : doc.required ? "Needed" : "Optional"}
               </Badge>
             </li>
@@ -350,7 +436,7 @@ export function CandidateTrackSearch({
     e.preventDefault();
     const trimmed = code.trim();
     if (!trimmed) {
-      setError("Enter your candidate ID.");
+      setError("Enter a candidate ID or bank ID.");
       return;
     }
     setBusy(true);
@@ -360,8 +446,12 @@ export function CandidateTrackSearch({
         onSubmitCode(trimmed);
         return;
       }
-      const result = await trackCandidate(trimmed);
-      onResult?.(result);
+      const result = await trackLookup(trimmed);
+      if (result.type === "bank") {
+        window.location.assign(`/track?id=${encodeURIComponent(trimmed)}`);
+        return;
+      }
+      onResult?.(result.track);
     } catch (err) {
       setError(friendlyTrackError(err));
     } finally {
@@ -389,7 +479,7 @@ export function CandidateTrackSearch({
           !onDark && "text-[1.65rem] sm:text-3xl md:text-4xl",
         )}
       >
-        Look up your candidate ID.
+        Look up a candidate or bank ID.
       </p>
       {(isPage || !isHero) && (
         <p
@@ -399,62 +489,66 @@ export function CandidateTrackSearch({
             !onDark && "text-sm text-muted-foreground sm:text-base",
           )}
         >
-          Enter the ID from your application to see cohort, training, documents, financing, and
-          pending approvals.
+          Use a candidate ID (UZA-2026-00001) for one driver, or a bank ID (UZA-BANK-2026-00001)
+          for that bank&apos;s full training portfolio.
         </p>
       )}
       {isHero && (
         <p className="mt-1.5 text-[11px] leading-snug text-ink-foreground/65 sm:text-xs">
-          Cohort, training, docs, financing & approvals.
+          Candidate or bank ID · training, docs, financing.
         </p>
       )}
 
       <form
         onSubmit={handleSearch}
-        className={cn(
-          "flex flex-col gap-2.5",
-          isHero && "mt-3.5",
-          isPage && "mt-8 max-w-lg sm:flex-row sm:items-stretch sm:gap-3",
-          !onDark && "mt-8 max-w-xl sm:flex-row sm:items-center sm:gap-2.5",
-        )}
+        className={cn(isHero && "mt-3.5", isPage && "mt-8 max-w-xl", !onDark && "mt-8 max-w-xl")}
       >
-        <div className="relative min-w-0 w-full flex-1">
-          <FiSearch
-            className={cn(
-              "pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2",
-              isHero ? "size-3.5" : "size-4",
-              onDark ? "text-ink-foreground/50" : "text-muted-foreground",
-            )}
-            aria-hidden
-          />
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="UZA-2026-00001"
-            className={cn(
-              "w-full font-display tracking-wide shadow-none",
-              isHero && "h-10 pl-9 text-sm",
-              isPage && "h-12 border-white/25 bg-white/10 pl-11 text-base text-ink-foreground placeholder:text-ink-foreground/40",
-              !onDark && "h-11 pl-10 text-sm",
-              isHero && "border-white/20 bg-white/10 text-ink-foreground placeholder:text-ink-foreground/40",
-            )}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </div>
-        <Button
-          type="submit"
-          size={isHero ? "sm" : "lg"}
+        <div
           className={cn(
-            "shadow-none",
-            isHero && "h-10 w-full bg-volt text-volt-foreground hover:bg-volt/90",
-            isPage && "h-12 w-full bg-volt px-8 text-volt-foreground hover:bg-volt/90 sm:w-auto sm:shrink-0",
-            !onDark && "h-10 w-full sm:w-auto sm:shrink-0",
+            "flex items-center gap-1.5 rounded-xl border p-1.5 shadow-none",
+            onDark
+              ? "border-white/25 bg-white/10 focus-within:border-volt/60"
+              : "border-input bg-background focus-within:border-ring focus-within:ring-1 focus-within:ring-ring",
           )}
-          disabled={busy}
         >
-          {busy ? "Searching…" : "View my status"}
-        </Button>
+          <div className="relative min-w-0 flex-1">
+            <FiSearch
+              className={cn(
+                "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4",
+                onDark ? "text-ink-foreground/50" : "text-muted-foreground",
+              )}
+              aria-hidden
+            />
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="UZA-2026-00001 or UZA-BANK-2026-00001"
+              className={cn(
+                "h-10 w-full border-0 bg-transparent pl-10 font-display tracking-wide shadow-none focus-visible:ring-0",
+                isPage && "h-11 text-base",
+                onDark
+                  ? "text-ink-foreground placeholder:text-ink-foreground/40"
+                  : "placeholder:text-muted-foreground",
+              )}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <Button
+            type="submit"
+            size="sm"
+            className={cn(
+              "h-10 shrink-0 px-5 shadow-none",
+              isPage && "h-11 px-6 text-base",
+              onDark
+                ? "bg-volt text-volt-foreground hover:bg-volt/90"
+                : "",
+            )}
+            disabled={busy}
+          >
+            {busy ? "…" : "Search"}
+          </Button>
+        </div>
       </form>
 
       {error && (

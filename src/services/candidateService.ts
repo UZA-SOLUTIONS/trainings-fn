@@ -239,10 +239,93 @@ export type CandidateTrackView = {
   }>;
 };
 
-export async function trackCandidate(code: string) {
+export type BankTrackCandidate = {
+  candidate_code: string;
+  full_name: string;
+  phone: string;
+  status: CandidateStatus;
+  waitlist_position: number | null;
+  training_status: TrainingStatus;
+  attendance_percentage: number | null;
+  exam_score: number | null;
+  loan_review_status: LoanReviewStatus;
+  listed_on_crb: boolean;
+  needs_uza_access_support: boolean;
+  deposit_available_rwf: number | null;
+  target_vehicle_price_rwf: number | null;
+  preferred_financing: string | null;
+  documents_percent: number;
+  documents_complete: number;
+  documents_required: number;
+  applied_at: string;
+  cohort: {
+    id: string;
+    name: string;
+    code: string;
+    location: string | null;
+    start_date: string | null;
+  } | null;
+};
+
+export type BankTrackView = {
+  bank_id: string;
+  name: string;
+  code: string;
+  is_active: boolean;
+  cohorts: Array<{
+    id: string;
+    name: string;
+    code: string;
+    location: string | null;
+    start_date: string | null;
+    candidate_count: number;
+  }>;
+  summary: {
+    total_candidates: number;
+    enrolled: number;
+    waitlisted: number;
+    training_completed: number;
+    training_in_progress: number;
+    training_not_started: number;
+    training_failed: number;
+    docs_ready: number;
+  };
+  candidates: BankTrackCandidate[];
+};
+
+export type TrackLookupResult =
+  | { type: "candidate"; track: CandidateTrackView }
+  | { type: "bank"; bank: BankTrackView };
+
+export async function trackLookup(code: string): Promise<TrackLookupResult> {
   const normalized = code.trim().toUpperCase();
-  const { data } = await api.get<ApiResponse<{ track: CandidateTrackView }>>(
-    `/candidates/track/${encodeURIComponent(normalized)}`,
-  );
-  return data.data.track;
+  const { data } = await api.get<
+    ApiResponse<
+      | { type: "candidate"; track: CandidateTrackView }
+      | { type: "bank"; bank: BankTrackView }
+      | { track: CandidateTrackView }
+    >
+  >(`/candidates/track/${encodeURIComponent(normalized)}`);
+
+  const payload = data.data;
+  if ("type" in payload && payload.type === "bank") {
+    return { type: "bank", bank: payload.bank };
+  }
+  if ("type" in payload && payload.type === "candidate") {
+    return { type: "candidate", track: payload.track };
+  }
+  // Backward compatible response
+  if ("track" in payload && payload.track) {
+    return { type: "candidate", track: payload.track };
+  }
+  throw new Error("Unexpected track response");
+}
+
+/** @deprecated Prefer trackLookup */
+export async function trackCandidate(code: string) {
+  const result = await trackLookup(code);
+  if (result.type !== "candidate") {
+    throw new Error("That ID belongs to a bank. Open Track results for the bank portfolio.");
+  }
+  return result.track;
 }
