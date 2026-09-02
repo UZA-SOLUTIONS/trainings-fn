@@ -20,16 +20,15 @@ const TAB_ACCESS: Record<DashboardTab, StaffUser["role"][]> = {
   courses: ["admin", "instructor"],
   modules: ["admin", "instructor"],
   candidates: ["admin", "instructor", "bank_partner"],
-  banks: ["admin"],
+  banks: ["admin", "instructor"],
   settings: ["admin", "instructor", "bank_partner"],
 };
 
 export function roleLabel(role: StaffUser["role"]): string {
   switch (role) {
     case "admin":
-      return "Admin";
     case "instructor":
-      return "Instructor";
+      return "Admin";
     case "bank_partner":
       return "Bank partner";
     default:
@@ -42,9 +41,9 @@ export function can(user: StaffUser | null, action: PermissionAction): boolean {
   if (user.role === "admin") return true;
 
   switch (action) {
-    case "institutions.write":
     case "staff.manage":
       return false;
+    case "institutions.write":
     case "cohorts.write":
     case "courses.write":
     case "modules.write":

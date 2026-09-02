@@ -17,6 +17,8 @@ export interface Institution {
   id: string;
   name: string;
   code: string;
+  /** Public track ID — e.g. UZA-BANK-2026-00001 */
+  bank_id?: string | null;
   target_program: string;
   is_default_for_program: boolean;
   is_active: boolean;
@@ -76,6 +78,7 @@ export const FALLBACK_INSTITUTION: Institution = {
   id: "fallback",
   name: "Unguka Bank",
   code: "UNGUKA",
+  bank_id: "UZA-BANK-2026-00001",
   target_program: "tunga_taxi",
   is_default_for_program: true,
   is_active: true,

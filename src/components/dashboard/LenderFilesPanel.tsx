@@ -257,8 +257,7 @@ export function LenderFilesPanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>UZA ID</TableHead>
-              <TableHead>Display name</TableHead>
+              <TableHead>Candidate</TableHead>
               <TableHead>Training</TableHead>
               <TableHead>Loan status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -267,7 +266,7 @@ export function LenderFilesPanel() {
           <TableBody>
             {isPending && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   Loading files…
                 </TableCell>
               </TableRow>
@@ -275,8 +274,14 @@ export function LenderFilesPanel() {
             {!isPending &&
               filtered.map((f) => (
                 <TableRow key={f.uzaId}>
-                  <TableCell className="font-mono font-semibold">{f.uzaId}</TableCell>
-                  <TableCell>{f.displayName}</TableCell>
+                  <TableCell>
+                    <div className="min-w-0">
+                      <p className="font-medium">{f.displayName}</p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold text-primary">
+                        {f.uzaId}
+                      </p>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{f.trainingStatus}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
@@ -292,7 +297,7 @@ export function LenderFilesPanel() {
               ))}
             {!isPending && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No consented files match.
                 </TableCell>
               </TableRow>

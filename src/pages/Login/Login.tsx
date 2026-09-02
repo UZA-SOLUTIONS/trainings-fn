@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { loadDashboardPreferences } from "@/components/dashboard/preferences";
 
@@ -43,72 +42,79 @@ export default function Login() {
   }
 
   return (
-    <Card className="w-full max-w-md border-border/70 p-8">
-      <p className="text-eyebrow text-muted-foreground">UZA Mobility staff</p>
-      <h1 className="mt-2 font-display text-2xl font-bold">
-        {mode === "signin" ? "Instructor sign in" : "Create a staff account"}
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {mode === "signin"
-          ? "Manage Tunga Taxi cohorts, candidates and the waiting list."
-          : "Only the first account becomes programme admin. Other staff are created by an admin."}
-      </p>
+    <div className="w-full max-w-[26rem]">
+      <div className="rounded-2xl border border-border/70 bg-background p-7 sm:p-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Staff portal
+        </p>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-[1.75rem]">
+          {mode === "signin" ? "Sign in" : "Create admin account"}
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {mode === "signin"
+            ? "Secure access for instructors, programme admins, and bank partners."
+            : "The first account becomes programme admin. Additional staff are invited by an admin."}
+        </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        {mode === "signup" && (
+        <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                maxLength={100}
+                autoComplete="name"
+                className="h-11"
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
-            <Label htmlFor="fullName">Full name</Label>
+            <Label htmlFor="email">Work email</Label>
             <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              maxLength={100}
+              maxLength={255}
+              autoComplete="email"
+              placeholder="name@organisation.rw"
+              className="h-11"
             />
           </div>
-        )}
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            maxLength={255}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
-        </div>
-        <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
-        </Button>
-      </form>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              className="h-11"
+            />
+          </div>
+          <Button type="submit" className="mt-2 h-11 w-full" disabled={busy}>
+            {busy ? "Please wait…" : mode === "signin" ? "Continue" : "Create account"}
+          </Button>
+        </form>
 
-      <button
-        type="button"
-        className="mt-5 w-full text-sm text-muted-foreground underline-offset-4 hover:underline"
-        onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-      >
-        {mode === "signin"
-          ? "First-time setup? Create the admin account"
-          : "Already have an account? Sign in"}
-      </button>
-
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        <Link to="/" className="underline-offset-4 hover:underline">
-          Back to home
-        </Link>
-      </p>
-    </Card>
+        <div className="mt-6 border-t border-border/70 pt-5">
+          <button
+            type="button"
+            className="w-full text-sm text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          >
+            {mode === "signin"
+              ? "First-time setup? Create the admin account"
+              : "Already have an account? Sign in"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

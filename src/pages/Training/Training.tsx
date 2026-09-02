@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FiArrowRight, FiMapPin, FiCalendar, FiClock, FiLayers } from "react-icons/fi";
 import { listCohorts } from "@/services/cohortService";
 import { listCourses } from "@/services/courseService";
-import { listModules } from "@/services/moduleService";
+import { listModules, moduleAttachmentUrl } from "@/services/moduleService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -132,7 +132,8 @@ export default function Training() {
                   Courses & modules
                 </h2>
                 <p className="mt-2 max-w-2xl text-muted-foreground">
-                  What drivers cover during training, organised by course.
+                  Full module content, section outlines, and downloadable materials organised by
+                  course.
                 </p>
               </div>
             </div>
@@ -186,31 +187,91 @@ export default function Training() {
                       </p>
                     ) : (
                       <ol className="divide-y divide-border/60">
-                        {courseModules.map((m) => (
-                          <li
-                            key={m.id}
-                            className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6"
-                          >
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="font-display text-sm font-semibold text-muted-foreground">
-                                  {String(m.sort_order).padStart(2, "0")}
-                                </span>
-                                <h4 className="font-medium">{m.name}</h4>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {m.code}
-                                </span>
+                        {courseModules.map((m) => {
+                          const sections = [...(m.contents || [])].sort(
+                            (a, b) => (a.sort_order || 0) - (b.sort_order || 0),
+                          );
+                          const files = m.attachments || [];
+                          return (
+                            <li key={m.id} className="px-5 py-5 sm:px-6">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-baseline gap-2">
+                                    <span className="font-display text-sm font-semibold text-muted-foreground">
+                                      {String(m.sort_order).padStart(2, "0")}
+                                    </span>
+                                    <h4 className="font-medium">{m.name}</h4>
+                                    <span className="font-mono text-xs text-muted-foreground">
+                                      {m.code}
+                                    </span>
+                                  </div>
+                                  {m.description && (
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                      {m.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+                                  <FiClock aria-hidden />
+                                  {m.duration_hours}h
+                                </p>
                               </div>
-                              {m.description && (
-                                <p className="mt-1 text-sm text-muted-foreground">{m.description}</p>
+
+                              {m.content?.trim() && (
+                                <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                                  {m.content}
+                                </div>
                               )}
-                            </div>
-                            <p className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
-                              <FiClock aria-hidden />
-                              {m.duration_hours}h
-                            </p>
-                          </li>
-                        ))}
+
+                              {sections.length > 0 && (
+                                <div className="mt-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Contents
+                                  </p>
+                                  <ol className="mt-2 space-y-3">
+                                    {sections.map((section, idx) => (
+                                      <li key={section.id || `${m.id}-s-${idx}`}>
+                                        <p className="font-medium">
+                                          {idx + 1}. {section.title}
+                                        </p>
+                                        {section.body?.trim() && (
+                                          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                                            {section.body}
+                                          </p>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ol>
+                                </div>
+                              )}
+
+                              {files.length > 0 && (
+                                <div className="mt-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Materials
+                                  </p>
+                                  <ul className="mt-2 flex flex-wrap gap-2">
+                                    {files.map((file) =>
+                                      file.id ? (
+                                        <li key={file.id}>
+                                          <Button asChild variant="outline" size="sm">
+                                            <a
+                                              href={moduleAttachmentUrl(m.id, file.id)}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                            >
+                                              {file.name}
+                                            </a>
+                                          </Button>
+                                        </li>
+                                      ) : null,
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ol>
                     )}
                   </Card>

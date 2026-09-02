@@ -9,5 +9,9 @@ export default function Courses() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <CoursesPanel />;
+  return (
+    <div className="min-h-0 flex-1 pb-8">
+      <CoursesPanel />
+    </div>
+  );
 }

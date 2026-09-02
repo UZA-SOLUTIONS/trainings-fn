@@ -118,5 +118,8 @@ export function formatRwf(value: number, opts: { compact?: boolean } = {}): stri
   if (opts.compact && value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 1 : 2)}M RWF`;
   }
+  if (opts.compact && value >= 10_000) {
+    return `${Math.round(value / 1_000)}K RWF`;
+  }
   return `${Math.round(value).toLocaleString("en-US")} RWF`;
 }

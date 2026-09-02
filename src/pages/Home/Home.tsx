@@ -1,12 +1,33 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiCheck, FiArrowRight } from "react-icons/fi";
+import { FiCheck, FiArrowRight, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
   FinancingCalculator,
   type PayOption,
 } from "@/components/financing/FinancingCalculator";
-import heroImage from "@/assets/images/hero-ev-taxi.jpg";
+import { cn } from "@/lib/utils";
+
+const HERO_SLIDES = [
+  {
+    src: "/bg.jpg",
+    alt: "Electric taxi on a Kigali street at golden hour",
+    title: "Own the EV you drive.",
+    body: "UZA trains taxi drivers, helps you prepare bank documents and a deposit, then finances and delivers an electric vehicle — all tracked under one UZA ID from application to your door.",
+    cta: "See what you'd pay",
+    ctaHref: "#calculator",
+  },
+  {
+    src: "/1.jpg",
+    alt: "UZA Mobility electric vehicle",
+    title: "One ID. Every step.",
+    body: "From cohort training and document upload to bank review, vehicle allocation, and shipment — driver, bank, and UZA follow the same record, so nothing gets lost between offices.",
+    cta: "Track your ID",
+    ctaHref: "/track",
+  },
+];
+
+const HERO_INTERVAL_MS = 5500;
 
 const STEPS = [
   {
@@ -102,53 +123,126 @@ const PORTALS = [
 
 export default function Home() {
   const [calcOption, setCalcOption] = useState<PayOption>("financed");
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    if (HERO_SLIDES.length < 2) return;
+    const id = window.setInterval(() => {
+      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+    }, HERO_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, []);
 
   function openCalculator(option: PayOption) {
     setCalcOption(option);
     document.getElementById("calculator")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function goHero(delta: number) {
+    setHeroIndex((i) => (i + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+  }
+
   return (
     <main className="overflow-x-hidden">
-      <section className="relative flex min-h-[min(52svh,24rem)] flex-col overflow-hidden sm:min-h-[min(56svh,28rem)] md:min-h-[62vh]">
-        <img
-          src={heroImage}
-          alt="Electric taxi charging on a Kigali street at golden hour"
-          width={1600}
-          height={1104}
-          className="absolute inset-0 h-full w-full object-cover object-[72%_center] sm:object-center"
-        />
+      <section className="relative flex min-h-[80vh] flex-col overflow-hidden">
+        {HERO_SLIDES.map((slide, i) => (
+          <img
+            key={slide.src}
+            src={slide.src}
+            alt={slide.alt}
+            width={1600}
+            height={1104}
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover object-[72%_center] transition-opacity duration-1000 ease-in-out sm:object-center",
+              i === heroIndex ? "opacity-100" : "opacity-0",
+            )}
+            aria-hidden={i !== heroIndex}
+          />
+        ))}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,oklch(0.14_0.035_158_/0.55)_0%,oklch(0.14_0.035_158_/0.78)_45%,oklch(0.14_0.035_158_/0.94)_100%)] md:bg-gradient-to-r md:from-[oklch(0.16_0.04_158)]/94 md:via-[oklch(0.18_0.04_158)]/82 md:to-[oklch(0.2_0.03_158)]/50" />
 
-        <div className="relative container-page flex flex-1 flex-col justify-center py-10 text-ink-foreground sm:py-12 md:min-h-[62vh] md:py-16">
-          <div className="min-w-0 max-w-3xl">
-            <h1 className="font-display text-[2.25rem] font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4rem]">
-              Own the EV you drive.
-            </h1>
-            <p className="mt-4 max-w-xl text-lg text-ink-foreground/75 sm:mt-5 sm:text-xl md:text-2xl">
-              One ID from training to bank approval, allocation, and delivery.
-            </p>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button
-                size="default"
-                asChild
-                className="h-10 bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:h-11"
-              >
-                <a href="#calculator">See what you&apos;d pay</a>
-              </Button>
-              <Button
-                size="default"
-                asChild
-                variant="outline"
-                className="h-10 border-white/35 bg-transparent text-ink-foreground shadow-none hover:bg-white/10 sm:h-11"
-              >
-                <Link to="/training" className="inline-flex items-center gap-2">
-                  View cohorts & modules
-                  <FiArrowRight aria-hidden />
-                </Link>
-              </Button>
-            </div>
+        {HERO_SLIDES.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous image"
+              onClick={() => goHero(-1)}
+              className="absolute left-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 sm:left-4 sm:h-12 sm:w-12 md:left-6"
+            >
+              <FiChevronLeft className="size-8 sm:size-9" strokeWidth={1.5} aria-hidden />
+            </button>
+            <button
+              type="button"
+              aria-label="Next image"
+              onClick={() => goHero(1)}
+              className="absolute right-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 sm:right-4 sm:h-12 sm:w-12 md:right-6"
+            >
+              <FiChevronRight className="size-8 sm:size-9" strokeWidth={1.5} aria-hidden />
+            </button>
+          </>
+        )}
+
+        <div className="relative container-page flex min-h-[80vh] flex-1 flex-col justify-center py-16 text-ink-foreground sm:py-20 md:py-24">
+          <div className="grid min-w-0 max-w-3xl">
+            {HERO_SLIDES.map((slide, i) => {
+              const active = i === heroIndex;
+              return (
+                <div
+                  key={slide.src}
+                  className={cn(
+                    "col-start-1 row-start-1 transition-opacity duration-700 ease-in-out",
+                    active ? "z-10 opacity-100" : "z-0 opacity-0 pointer-events-none",
+                  )}
+                  aria-hidden={!active}
+                >
+                  <h1 className="font-display text-[2.25rem] font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4rem]">
+                    {slide.title}
+                  </h1>
+                  <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-foreground/80 sm:mt-6 sm:text-lg md:text-xl md:leading-relaxed">
+                    {slide.body}
+                  </p>
+                  <div className="mt-10 flex flex-col gap-2 sm:mt-12 sm:flex-row sm:flex-wrap sm:items-center">
+                    <Button
+                      size="default"
+                      asChild
+                      className="h-10 bg-volt text-volt-foreground shadow-none hover:bg-volt/90 sm:h-11"
+                    >
+                      {slide.ctaHref.startsWith("#") ? (
+                        <a href={slide.ctaHref}>{slide.cta}</a>
+                      ) : (
+                        <Link to={slide.ctaHref}>{slide.cta}</Link>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          {HERO_SLIDES.length > 1 && (
+            <div
+              className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 md:bottom-10"
+              role="tablist"
+              aria-label="Hero images"
+            >
+              {HERO_SLIDES.map((slide, i) => (
+                <button
+                  key={slide.src}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === heroIndex}
+                  aria-label={`Show image ${i + 1}`}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    i === heroIndex
+                      ? "w-8 bg-volt"
+                      : "w-1.5 bg-ink-foreground/40 hover:bg-ink-foreground/70",
+                  )}
+                  onClick={() => setHeroIndex(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -163,7 +257,7 @@ export default function Home() {
         <ol className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 md:grid-cols-2 lg:mt-14 lg:grid-cols-3">
           {STEPS.map((s, i) => (
             <li key={s.n} className="relative">
-              <article className="flex h-full flex-col rounded-2xl border border-border/70 bg-background p-5 transition-colors active:bg-muted/30 sm:p-6 hover:border-primary/35 hover:bg-muted/20">
+              <article className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 border-b-0 bg-background p-5 transition-colors active:bg-muted/30 sm:p-6 hover:border-primary/35 hover:bg-muted/20">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-semibold text-primary sm:h-10 sm:w-10">
                     {s.n}
@@ -187,6 +281,10 @@ export default function Home() {
                     <FiArrowRight aria-hidden />
                   </Link>
                 )}
+                <span
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-volt"
+                  aria-hidden
+                />
               </article>
             </li>
           ))}
@@ -274,39 +372,40 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-1 grid gap-0 md:mt-0 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:mt-10 sm:gap-5 md:grid-cols-3">
             {PORTALS.map((p, i) => (
               <article
                 key={p.title}
-                className="partners-lens group relative border-t border-ink-foreground/12 px-0 py-5 sm:px-1 sm:py-10 md:border-t-0 md:border-l md:px-8 md:py-12 first:md:border-l-0 first:md:pl-0"
+                className="partners-lens group relative overflow-hidden rounded-2xl border border-white/80 border-b-0 bg-white px-5 py-6 text-foreground sm:px-6 sm:py-8"
                 style={{ animationDelay: `${120 + i * 90}ms` }}
               >
                 <div className="flex items-baseline justify-between gap-3 sm:gap-4">
-                  <span className="font-display text-[1.75rem] font-bold leading-none tracking-tight text-volt/35 transition-colors duration-300 group-hover:text-volt/55 sm:text-5xl md:text-6xl">
+                  <span className="font-display text-[1.75rem] font-bold leading-none tracking-tight text-volt transition-opacity duration-300 group-hover:opacity-90 sm:text-5xl md:text-6xl">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-eyebrow text-ink-foreground/35">Viewpoint</span>
+                  <span className="text-eyebrow text-muted-foreground">Viewpoint</span>
                 </div>
-                <h3 className="mt-3 font-display text-lg font-semibold tracking-tight sm:mt-6 sm:text-2xl">
+                <h3 className="mt-3 font-display text-lg font-semibold tracking-tight text-foreground sm:mt-6 sm:text-2xl">
                   {p.title}
                 </h3>
-                <p className="mt-1 text-[13px] leading-snug text-ink-foreground/55 sm:mt-2 sm:text-sm sm:leading-relaxed">
+                <p className="mt-1 text-[13px] leading-snug text-muted-foreground sm:mt-2 sm:text-sm sm:leading-relaxed">
                   {p.lens}
                 </p>
                 <ul className="mt-3.5 space-y-2 sm:mt-8 sm:space-y-4">
                   {p.points.map((pt) => (
                     <li
                       key={pt}
-                      className="flex items-start gap-2.5 text-[13px] text-ink-foreground/85 sm:gap-3 sm:text-sm"
+                      className="flex items-start gap-2.5 text-[13px] text-foreground/85 sm:gap-3 sm:text-sm"
                     >
-                      <span
-                        className="mt-[0.4rem] h-1.5 w-1.5 shrink-0 bg-volt"
-                        aria-hidden
-                      />
+                      <span className="mt-[0.4rem] h-1.5 w-1.5 shrink-0 bg-volt" aria-hidden />
                       <span className="leading-snug sm:leading-relaxed">{pt}</span>
                     </li>
                   ))}
                 </ul>
+                <span
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-volt"
+                  aria-hidden
+                />
               </article>
             ))}
           </div>

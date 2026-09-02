@@ -104,7 +104,7 @@ export function StaffNav() {
 
       <nav className="flex flex-1 flex-col gap-6 px-3">
         <div>
-          <p className="mb-3 px-3 text-eyebrow text-sidebar-foreground/50">Workspace</p>
+          <p className="mb-3 px-3 text-eyebrow text-sidebar-foreground/50">Admin</p>
           <div className="flex flex-col gap-3">
             {workspaceNav.map(({ tab, label, icon }) => navLink(tab, label, icon))}
           </div>

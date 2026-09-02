@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiCheck, FiAlertCircle, FiClock, FiSearch } from "react-icons/fi";
 import {
   trackLookup,
@@ -412,6 +412,11 @@ type SearchProps = {
   onResult?: (track: CandidateTrackView) => void;
   onSubmitCode?: (code: string) => void;
   defaultCode?: string;
+  /** When true (e.g. after a bank ID lookup), show a second candidate-ID field */
+  showCandidateField?: boolean;
+  candidateCode?: string;
+  onCandidateCodeChange?: (code: string) => void;
+  onCandidateSubmit?: (code: string) => void;
 };
 
 export function CandidateTrackSearch({
@@ -419,10 +424,15 @@ export function CandidateTrackSearch({
   onResult,
   onSubmitCode,
   defaultCode = "",
+  showCandidateField = false,
+  candidateCode = "",
+  onCandidateCodeChange,
+  onCandidateSubmit,
 }: SearchProps) {
   const [code, setCode] = useState(defaultCode);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const candidateInputRef = useRef<HTMLInputElement>(null);
 
   const isHero = variant === "hero";
   const isPage = variant === "page";
@@ -431,6 +441,13 @@ export function CandidateTrackSearch({
   useEffect(() => {
     if (defaultCode) setCode(defaultCode);
   }, [defaultCode]);
+
+  useEffect(() => {
+    if (showCandidateField) {
+      const t = window.setTimeout(() => candidateInputRef.current?.focus(), 80);
+      return () => window.clearTimeout(t);
+    }
+  }, [showCandidateField]);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -459,6 +476,20 @@ export function CandidateTrackSearch({
     }
   }
 
+  function handleCandidateSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = candidateCode.trim().toUpperCase();
+    if (!trimmed) return;
+    onCandidateSubmit?.(trimmed);
+  }
+
+  const fieldShell = cn(
+    "flex items-center gap-1.5 rounded-xl border p-1.5 shadow-none",
+    onDark
+      ? "border-white/25 bg-white/10 focus-within:border-volt/60"
+      : "border-input bg-background focus-within:border-ring focus-within:ring-1 focus-within:ring-ring",
+  );
+
   return (
     <div
       className={cn(
@@ -481,18 +512,6 @@ export function CandidateTrackSearch({
       >
         Look up a candidate or bank ID.
       </p>
-      {(isPage || !isHero) && (
-        <p
-          className={cn(
-            "mt-3 max-w-xl leading-relaxed",
-            isPage && "text-sm text-ink-foreground/70 sm:text-base",
-            !onDark && "text-sm text-muted-foreground sm:text-base",
-          )}
-        >
-          Use a candidate ID (UZA-2026-00001) for one driver, or a bank ID (UZA-BANK-2026-00001)
-          for that bank&apos;s full training portfolio.
-        </p>
-      )}
       {isHero && (
         <p className="mt-1.5 text-[11px] leading-snug text-ink-foreground/65 sm:text-xs">
           Candidate or bank ID · training, docs, financing.
@@ -503,14 +522,15 @@ export function CandidateTrackSearch({
         onSubmit={handleSearch}
         className={cn(isHero && "mt-3.5", isPage && "mt-8 max-w-xl", !onDark && "mt-8 max-w-xl")}
       >
-        <div
+        <label
           className={cn(
-            "flex items-center gap-1.5 rounded-xl border p-1.5 shadow-none",
-            onDark
-              ? "border-white/25 bg-white/10 focus-within:border-volt/60"
-              : "border-input bg-background focus-within:border-ring focus-within:ring-1 focus-within:ring-ring",
+            "mb-1.5 block text-xs font-medium",
+            onDark ? "text-ink-foreground/55" : "text-muted-foreground",
           )}
         >
+          Bank or candidate ID
+        </label>
+        <div className={fieldShell}>
           <div className="relative min-w-0 flex-1">
             <FiSearch
               className={cn(
@@ -522,7 +542,7 @@ export function CandidateTrackSearch({
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="UZA-2026-00001 or UZA-BANK-2026-00001"
+              placeholder="UZA-BANK-2026-00001"
               className={cn(
                 "h-10 w-full border-0 bg-transparent pl-10 font-display tracking-wide shadow-none focus-visible:ring-0",
                 isPage && "h-11 text-base",
@@ -540,9 +560,7 @@ export function CandidateTrackSearch({
             className={cn(
               "h-10 shrink-0 px-5 shadow-none",
               isPage && "h-11 px-6 text-base",
-              onDark
-                ? "bg-volt text-volt-foreground hover:bg-volt/90"
-                : "",
+              onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
             )}
             disabled={busy}
           >
@@ -550,6 +568,63 @@ export function CandidateTrackSearch({
           </Button>
         </div>
       </form>
+
+      {showCandidateField && (
+        <form
+          onSubmit={handleCandidateSearch}
+          className={cn("mt-3 max-w-xl animate-in fade-in slide-in-from-top-1 duration-200")}
+        >
+          <label
+            className={cn(
+              "mb-1.5 block text-xs font-medium",
+              onDark ? "text-volt" : "text-primary",
+            )}
+          >
+            Search candidate ID in this bank
+          </label>
+          <div className={fieldShell}>
+            <div className="relative min-w-0 flex-1">
+              <FiSearch
+                className={cn(
+                  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4",
+                  onDark ? "text-ink-foreground/50" : "text-muted-foreground",
+                )}
+                aria-hidden
+              />
+              <Input
+                ref={candidateInputRef}
+                value={candidateCode}
+                onChange={(e) => onCandidateCodeChange?.(e.target.value.toUpperCase())}
+                placeholder="UZA-2026-00001"
+                className={cn(
+                  "h-10 w-full border-0 bg-transparent pl-10 font-display tracking-wide shadow-none focus-visible:ring-0",
+                  isPage && "h-11 text-base",
+                  onDark
+                    ? "text-ink-foreground placeholder:text-ink-foreground/40"
+                    : "placeholder:text-muted-foreground",
+                )}
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Search candidate ID within bank portfolio"
+              />
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              className={cn(
+                "h-10 shrink-0 px-5 shadow-none",
+                isPage && "h-11 px-6 text-base",
+                onDark
+                  ? "border-white/30 bg-white/10 text-ink-foreground hover:bg-white/15"
+                  : "",
+              )}
+            >
+              Find
+            </Button>
+          </div>
+        </form>
+      )}
 
       {error && (
         <p

@@ -21,6 +21,7 @@ export default function Track() {
   const [bank, setBank] = useState<BankTrackView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [candidateFilter, setCandidateFilter] = useState("");
 
   useEffect(() => {
     if (!lookupId) {
@@ -28,12 +29,14 @@ export default function Track() {
       setBank(null);
       setError(null);
       setLoading(false);
+      setCandidateFilter("");
       return;
     }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setCandidateFilter("");
 
     trackLookup(lookupId)
       .then((result) => {
@@ -67,16 +70,29 @@ export default function Track() {
     setParams({ id: code.trim().toUpperCase() });
   }
 
+  function handleCandidateSubmit(code: string) {
+    const match = bank?.candidates.find(
+      (c) => c.candidate_code.toUpperCase() === code.trim().toUpperCase(),
+    );
+    if (match) {
+      setParams({ id: match.candidate_code });
+      return;
+    }
+    // Still navigate — track page will resolve or show not found
+    setParams({ id: code.trim().toUpperCase() });
+  }
+
   function clearSearch() {
     setParams({});
     setTrack(null);
     setBank(null);
     setError(null);
+    setCandidateFilter("");
   }
 
   return (
     <main className="min-h-[60vh]">
-      <section className="relative flex min-h-[min(42svh,22rem)] items-center overflow-hidden border-b border-border/50 py-12 text-ink-foreground sm:min-h-[min(46svh,26rem)] md:py-16 lg:min-h-[38vh]">
+      <section className="relative flex min-h-[80vh] items-center overflow-hidden border-b border-border/50 py-16 text-ink-foreground sm:py-20 md:py-24">
         <img
           src="/hero.avif"
           alt=""
@@ -100,6 +116,10 @@ export default function Track() {
             variant="page"
             defaultCode={lookupId}
             onSubmitCode={handleSearch}
+            showCandidateField={Boolean(bank) && !loading && !error}
+            candidateCode={candidateFilter}
+            onCandidateCodeChange={setCandidateFilter}
+            onCandidateSubmit={handleCandidateSubmit}
           />
         </div>
       </section>
@@ -121,11 +141,17 @@ export default function Track() {
         )}
 
         {!loading && !error && track && <CandidateTrackResult track={track} />}
-        {!loading && !error && bank && <BankTrackResult bank={bank} />}
+        {!loading && !error && bank && (
+          <BankTrackResult
+            bank={bank}
+            filterQuery={candidateFilter}
+            onFilterQueryChange={setCandidateFilter}
+          />
+        )}
 
         {!loading && !error && !track && !bank && !lookupId && (
           <p className="text-center text-sm text-muted-foreground">
-            Enter a candidate ID (UZA-2026-00001) or bank ID (UZA-BANK-2026-00001) to view progress.
+            Enter a candidate ID or bank ID to view progress.
           </p>
         )}
       </section>

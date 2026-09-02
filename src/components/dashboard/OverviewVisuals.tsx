@@ -3,15 +3,9 @@ import type { StaffRole } from "@/services/authService";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   DonutChart,
+  GroupedHistogram,
+  HistogramChart,
   HorizontalBar,
   StatRing,
 } from "@/components/charts/ChartPrimitives";
@@ -24,6 +18,8 @@ type Candidate = {
   needs_uza_access_support?: boolean;
   deposit_available_rwf?: number | null;
   has_bank_account?: boolean;
+  listed_on_crb?: boolean;
+  loan_review_status?: string;
   [key: string]: unknown;
 };
 
@@ -39,12 +35,25 @@ const DOC_KEYS = [
 
 const MIN_DEPOSIT = 500_000;
 
+const BAR_COLORS = [
+  "var(--primary)",
+  "var(--volt)",
+  "oklch(0.55 0.08 158)",
+  "oklch(0.62 0.12 250)",
+  "oklch(0.58 0.14 40)",
+  "oklch(0.5 0.1 300)",
+];
+
 function fmt(n: number) {
   return new Intl.NumberFormat("en-RW").format(Math.round(n));
 }
 
 function docsComplete(c: Candidate) {
   return DOC_KEYS.every((k) => c[k] === true);
+}
+
+function shortCohortLabel(c: Cohort) {
+  return c.code || c.name.slice(0, 12);
 }
 
 export function OverviewVisuals({
@@ -86,6 +95,9 @@ export function OverviewVisuals({
   const neither = candidates.filter(
     (c) => !c.has_bank_account && !c.needs_uza_access_support,
   ).length;
+  const bothAccess = candidates.filter(
+    (c) => c.has_bank_account && c.needs_uza_access_support,
+  ).length;
 
   const deposits = candidates
     .map((c) => Number(c.deposit_available_rwf ?? 0))
@@ -113,17 +125,71 @@ export function OverviewVisuals({
     (c) => c.training_status === "completed" && docsComplete(c),
   ).length;
 
+  const openCohorts = cohorts.filter((c) => c.applications_open).length;
+  const closedCohorts = cohorts.length - openCohorts;
+
+  const applicationsByStatus = [
+    { label: "Enrolled", value: enrolled, color: "var(--primary)" },
+    { label: "Waiting", value: waitlisted, color: "var(--volt)" },
+    { label: "Graduated", value: graduated, color: "oklch(0.55 0.08 158)" },
+    { label: "Other", value: Math.max(0, other), color: "oklch(0.78 0.02 130)" },
+  ];
+
+  const applicationsReceivedBars = cohorts.map((c, i) => {
+    const inCohort = candidates.filter((x) => x.cohort_id === c.id);
+    return {
+      label: shortCohortLabel(c),
+      subLabel: c.applications_open ? "Open" : "Closed",
+      value: inCohort.length,
+      color: BAR_COLORS[i % BAR_COLORS.length],
+    };
+  });
+
+  const capacityGroups = cohorts.map((c) => {
+    const inCohort = candidates.filter((x) => x.cohort_id === c.id);
+    const filled = inCohort.filter(
+      (x) => x.status === "enrolled" || x.status === "graduated",
+    ).length;
+    const waiting = inCohort.filter((x) => x.status === "waitlisted").length;
+    return {
+      label: shortCohortLabel(c),
+      values: {
+        filled,
+        capacity: c.capacity,
+        waiting,
+      },
+    };
+  });
+
+  const trainingSessionBars = [
+    { label: "Not started", value: trainingNotStarted, color: "oklch(0.78 0.02 130)" },
+    { label: "In session", value: trainingInProgress, color: "var(--volt)" },
+    { label: "Completed", value: trainingCompleted, color: "var(--primary)" },
+    { label: "Failed", value: trainingFailed, color: "var(--destructive)" },
+  ];
+
+  const locationMap = new Map<string, number>();
+  for (const c of cohorts) {
+    const loc = c.location?.trim() || "Unspecified";
+    locationMap.set(loc, (locationMap.get(loc) ?? 0) + 1);
+  }
+  const locationBars = [...locationMap.entries()].map(([label, value], i) => ({
+    label,
+    value,
+    color: BAR_COLORS[i % BAR_COLORS.length],
+  }));
+
   const showFinancing = role === "admin";
   const showTrainingFocus = role === "admin" || role === "instructor";
   const showLoanPipeline = role === "admin" || role === "bank_partner";
+  const showCohortCharts = role === "admin" || role === "instructor" || role === "bank_partner";
   const statGridCols =
     role === "instructor" ? "sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-4";
-  const detailGridCols =
-    role === "admin" ? "lg:grid-cols-2" : role === "bank_partner" ? "lg:grid-cols-2" : "grid-cols-1";
 
   return (
-    <div className={cn("flex min-h-0 flex-col gap-5 overflow-y-auto lg:overflow-hidden", className)}>
-      <div className={cn("grid shrink-0 gap-4", statGridCols)}>
+    <div className={cn("flex flex-col gap-6 pb-10", className)}>
+      {/* KPI rings */}
+      <div className={cn("grid gap-4", statGridCols)}>
         {(role === "admin" || role === "instructor") && (
           <StatRing
             title="Application pipeline"
@@ -263,198 +329,326 @@ export function OverviewVisuals({
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-        {(role === "admin" || role === "instructor" || role === "bank_partner") && (
-          <Card className="flex max-h-[40%] min-h-0 flex-col overflow-hidden border-border/70 p-0 lg:max-h-none lg:flex-[1.2]">
-            <div className="shrink-0 border-b border-border/60 px-5 py-4 sm:px-6">
-              <p className="text-eyebrow text-muted-foreground">Cohort capacity</p>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cohort</TableHead>
-                    <TableHead className="text-right">Filled</TableHead>
-                    <TableHead className="text-right">Capacity</TableHead>
-                    <TableHead className="text-right">Waiting</TableHead>
-                    <TableHead className="min-w-[9rem]">Fill</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cohorts.map((c) => {
-                    const inCohort = candidates.filter((x) => x.cohort_id === c.id);
-                    const filled = inCohort.filter(
-                      (x) => x.status === "enrolled" || x.status === "graduated",
-                    ).length;
-                    const waiting = inCohort.filter((x) => x.status === "waitlisted").length;
-                    const pct = Math.min(100, Math.round((filled / Math.max(c.capacity, 1)) * 100));
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell>
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{c.name}</p>
-                            <p className="truncate text-sm text-muted-foreground">{c.code}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{filled}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {c.capacity}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {waiting}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={pct} className="h-2.5 flex-1" />
-                            <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-                              {pct}%
-                            </span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {cohorts.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                        No cohorts yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+      {/* System snapshot strip */}
+      {showTrainingFocus && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Cohorts open", value: openCohorts, hint: `${closedCohorts} closed` },
+            { label: "Applications", value: candidates.length, hint: "all statuses" },
+            { label: "In training", value: trainingInProgress, hint: "active sessions" },
+            { label: "Seat fill", value: `${seatPct}%`, hint: `${seated} of ${capacity}` },
+          ].map((item) => (
+            <Card key={item.label} className="border-border/70 p-4 sm:p-5">
+              <p className="text-eyebrow text-muted-foreground">{item.label}</p>
+              <p className="mt-2 font-display text-3xl font-bold tracking-tight">{item.value}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Histograms & charts */}
+      {showCohortCharts && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border/70 p-5 sm:p-6">
+            <p className="font-display text-base font-semibold tracking-tight">
+              Applications received by cohort
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Total candidates linked to each cohort
+            </p>
+            <div className="mt-6">
+              {applicationsReceivedBars.length > 0 ? (
+                <HistogramChart bars={applicationsReceivedBars} height={200} />
+              ) : (
+                <p className="py-10 text-center text-sm text-muted-foreground">No cohorts yet.</p>
+              )}
             </div>
           </Card>
-        )}
 
-        {(showFinancing || role === "bank_partner") && (
-          <div className={cn("grid min-h-0 flex-1 gap-4", detailGridCols)}>
-            {showFinancing && (
-              <Card className="flex min-h-0 flex-col border-border/70 p-5 sm:p-6">
-                <p className="shrink-0 text-eyebrow text-muted-foreground">Financing readiness</p>
-                <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-                  <HorizontalBar
-                    label="Average deposit available"
-                    value={avgDeposit}
-                    max={Math.max(avgDeposit, MIN_DEPOSIT, 1)}
-                    colorClass="bg-primary"
-                    display={`${fmt(avgDeposit)} RWF`}
-                  />
-                  <HorizontalBar
-                    label="Meet 500K minimum contribution"
-                    value={meetsMinDeposit}
-                    max={Math.max(candidates.length, 1)}
-                    colorClass="bg-volt"
-                    display={`${meetsMinDeposit} drivers`}
-                  />
-                  <HorizontalBar
-                    label="With bank account"
-                    value={banked}
-                    max={Math.max(candidates.length, 1)}
-                    colorClass="bg-primary"
-                    display={`${banked} / ${candidates.length}`}
-                  />
-                  <HorizontalBar
-                    label="Need UZA Access top-up"
-                    value={accessSupport}
-                    max={Math.max(candidates.length, 1)}
-                    colorClass="bg-destructive/70"
-                    display={`${accessSupport} / ${candidates.length}`}
-                  />
+          <Card className="border-border/70 p-5 sm:p-6">
+            <p className="font-display text-base font-semibold tracking-tight">
+              Cohort capacity vs filled
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Filled seats, capacity, and waiting list per cohort
+            </p>
+            <div className="mt-6">
+              {capacityGroups.length > 0 ? (
+                <GroupedHistogram
+                  groups={capacityGroups}
+                  series={[
+                    { key: "filled", label: "Filled", color: "var(--primary)" },
+                    { key: "capacity", label: "Capacity", color: "oklch(0.78 0.02 130)" },
+                    { key: "waiting", label: "Waiting", color: "var(--volt)" },
+                  ]}
+                  height={200}
+                />
+              ) : (
+                <p className="py-10 text-center text-sm text-muted-foreground">No cohorts yet.</p>
+              )}
+            </div>
+          </Card>
+
+          {(role === "admin" || role === "instructor") && (
+            <>
+              <Card className="border-border/70 p-5 sm:p-6">
+                <p className="font-display text-base font-semibold tracking-tight">
+                  Application status mix
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  How applications sit across the pipeline
+                </p>
+                <div className="mt-6">
+                  <HistogramChart bars={applicationsByStatus} height={180} />
                 </div>
               </Card>
-            )}
 
-            {role === "bank_partner" && (
-              <Card className="flex min-h-0 flex-col border-border/70 p-5 sm:p-6">
-                <p className="shrink-0 text-eyebrow text-muted-foreground">Deposit readiness</p>
-                <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+              <Card className="border-border/70 p-5 sm:p-6">
+                <p className="font-display text-base font-semibold tracking-tight">
+                  Training sessions
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Candidates by training session stage
+                </p>
+                <div className="mt-6">
+                  <HistogramChart bars={trainingSessionBars} height={180} />
+                </div>
+              </Card>
+            </>
+          )}
+
+          {showTrainingFocus && (
+            <Card className="border-border/70 p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-display text-base font-semibold tracking-tight">
+                    Cohorts accepting applications
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">Open vs closed intake</p>
+                </div>
+                <DonutChart
+                  size={100}
+                  strokeWidth={11}
+                  centerLabel={String(cohorts.length)}
+                  centerSub="cohorts"
+                  segments={[
+                    { value: openCohorts, color: "var(--primary)", label: "Open" },
+                    { value: closedCohorts, color: "oklch(0.85 0.01 130)", label: "Closed" },
+                  ]}
+                />
+              </div>
+              <div className="mt-5 space-y-3">
+                <HorizontalBar
+                  label="Applications open"
+                  value={openCohorts}
+                  max={Math.max(cohorts.length, 1)}
+                  colorClass="bg-primary"
+                  display={`${openCohorts} cohorts`}
+                />
+                <HorizontalBar
+                  label="Applications closed"
+                  value={closedCohorts}
+                  max={Math.max(cohorts.length, 1)}
+                  colorClass="bg-muted-foreground/40"
+                  display={`${closedCohorts} cohorts`}
+                />
+              </div>
+            </Card>
+          )}
+
+          {showTrainingFocus && locationBars.length > 0 && (
+            <Card className="border-border/70 p-5 sm:p-6">
+              <p className="font-display text-base font-semibold tracking-tight">
+                Cohorts by location
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Geographic spread of programmes</p>
+              <div className="mt-6">
+                <HistogramChart bars={locationBars} height={180} />
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Financing / bank partner detail */}
+      {(showFinancing || role === "bank_partner") && (
+        <div
+          className={cn(
+            "grid gap-4",
+            role === "admin" ? "lg:grid-cols-2" : "lg:grid-cols-2",
+          )}
+        >
+          {showFinancing && (
+            <Card className="border-border/70 p-5 sm:p-6">
+              <p className="font-display text-base font-semibold tracking-tight">
+                Financing readiness
+              </p>
+              <div className="mt-5 space-y-4">
+                <HorizontalBar
+                  label="Average deposit available"
+                  value={avgDeposit}
+                  max={Math.max(avgDeposit, MIN_DEPOSIT, 1)}
+                  colorClass="bg-primary"
+                  display={`${fmt(avgDeposit)} RWF`}
+                />
+                <HorizontalBar
+                  label="Meet 500K minimum contribution"
+                  value={meetsMinDeposit}
+                  max={Math.max(candidates.length, 1)}
+                  colorClass="bg-volt"
+                  display={`${meetsMinDeposit} drivers`}
+                />
+                <HorizontalBar
+                  label="With bank account"
+                  value={banked}
+                  max={Math.max(candidates.length, 1)}
+                  colorClass="bg-primary"
+                  display={`${banked} / ${candidates.length}`}
+                />
+                <HorizontalBar
+                  label="Need UZA Access top-up"
+                  value={accessSupport}
+                  max={Math.max(candidates.length, 1)}
+                  colorClass="bg-destructive/70"
+                  display={`${accessSupport} / ${candidates.length}`}
+                />
+              </div>
+            </Card>
+          )}
+
+          {role === "bank_partner" && (
+            <Card className="border-border/70 p-5 sm:p-6">
+              <p className="font-display text-base font-semibold tracking-tight">Deposit readiness</p>
+              <div className="mt-5 space-y-4">
+                <HorizontalBar
+                  label="Average deposit available"
+                  value={avgDeposit}
+                  max={Math.max(avgDeposit, MIN_DEPOSIT, 1)}
+                  colorClass="bg-primary"
+                  display={`${fmt(avgDeposit)} RWF`}
+                />
+                <HorizontalBar
+                  label="Meet 500K minimum contribution"
+                  value={meetsMinDeposit}
+                  max={Math.max(candidates.length, 1)}
+                  colorClass="bg-volt"
+                  display={`${meetsMinDeposit} drivers`}
+                />
+                <HorizontalBar
+                  label="CRB listings to resolve"
+                  value={crbListed}
+                  max={Math.max(candidates.length, 1)}
+                  colorClass="bg-destructive/70"
+                  display={`${crbListed} / ${candidates.length}`}
+                />
+              </div>
+            </Card>
+          )}
+
+          {showFinancing && (
+            <Card className="border-border/70 p-5 sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-display text-base font-semibold tracking-tight">
+                    Readiness mix
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">Bank vs UZA Access support</p>
+                </div>
+                <DonutChart
+                  size={96}
+                  strokeWidth={10}
+                  centerLabel={String(candidates.length)}
+                  centerSub="drivers"
+                  segments={[
+                    { value: bankOnly, color: "var(--primary)", label: "Bank only" },
+                    { value: accessOnly, color: "var(--destructive)", label: "Access only" },
+                    { value: bothAccess, color: "var(--volt)", label: "Both" },
+                    { value: neither, color: "oklch(0.85 0.01 130)", label: "Neither" },
+                  ]}
+                />
+              </div>
+              <div className="mt-5 space-y-3">
+                {[
+                  {
+                    label: "Bank account",
+                    value: banked,
+                    total: candidates.length,
+                    className: "[&>div]:bg-primary",
+                  },
+                  {
+                    label: "UZA Access requested",
+                    value: accessSupport,
+                    total: candidates.length,
+                    className: "[&>div]:bg-destructive",
+                  },
+                  {
+                    label: "No bank account",
+                    value: candidates.length - banked,
+                    total: candidates.length,
+                    className: "[&>div]:bg-muted-foreground/50",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border/60 px-3 py-3">
+                    <div className="flex items-baseline justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-display text-xl font-bold">{item.value}</span>
+                    </div>
+                    <Progress
+                      value={item.total ? (item.value / item.total) * 100 : 0}
+                      className={`mt-2 h-1.5 ${item.className}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {showLoanPipeline && role === "admin" && (
+            <Card className="border-border/70 p-5 sm:p-6 lg:col-span-2">
+              <p className="font-display text-base font-semibold tracking-tight">Loan pipeline</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Review readiness and decision outcomes
+              </p>
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <HistogramChart
+                  bars={[
+                    { label: "Ready", value: readyForReview, color: "var(--primary)" },
+                    { label: "In review", value: loanInReview, color: "var(--volt)" },
+                    { label: "Approved", value: loanApproved, color: "oklch(0.55 0.08 158)" },
+                    { label: "Declined", value: loanDeclined, color: "var(--destructive)" },
+                    { label: "CRB listed", value: crbListed, color: "oklch(0.58 0.14 40)" },
+                  ]}
+                  height={180}
+                />
+                <div className="space-y-4">
                   <HorizontalBar
-                    label="Average deposit available"
-                    value={avgDeposit}
-                    max={Math.max(avgDeposit, MIN_DEPOSIT, 1)}
+                    label="Ready for review (training + docs)"
+                    value={readyForReview}
+                    max={Math.max(candidates.length, 1)}
                     colorClass="bg-primary"
-                    display={`${fmt(avgDeposit)} RWF`}
+                    display={`${readyForReview} / ${candidates.length}`}
                   />
                   <HorizontalBar
-                    label="Meet 500K minimum contribution"
-                    value={meetsMinDeposit}
+                    label="Loan approved"
+                    value={loanApproved}
                     max={Math.max(candidates.length, 1)}
                     colorClass="bg-volt"
-                    display={`${meetsMinDeposit} drivers`}
+                    display={`${loanApproved} / ${candidates.length}`}
                   />
                   <HorizontalBar
-                    label="CRB listings to resolve"
+                    label="CRB listings"
                     value={crbListed}
                     max={Math.max(candidates.length, 1)}
                     colorClass="bg-destructive/70"
                     display={`${crbListed} / ${candidates.length}`}
                   />
                 </div>
-              </Card>
-            )}
-
-            {showFinancing && (
-              <Card className="flex min-h-0 flex-col border-border/70 p-5 sm:p-6">
-                <div className="flex shrink-0 flex-wrap items-end justify-between gap-4">
-                  <p className="text-eyebrow text-muted-foreground">Readiness mix</p>
-                  <DonutChart
-                    size={96}
-                    strokeWidth={10}
-                    centerLabel={String(candidates.length)}
-                    centerSub="drivers"
-                    segments={[
-                      { value: bankOnly, color: "var(--primary)", label: "Bank only" },
-                      { value: accessOnly, color: "var(--destructive)", label: "Access only" },
-                      {
-                        value: candidates.filter(
-                          (c) => c.has_bank_account && c.needs_uza_access_support,
-                        ).length,
-                        color: "var(--volt)",
-                        label: "Both",
-                      },
-                      { value: neither, color: "oklch(0.85 0.01 130)", label: "Neither" },
-                    ]}
-                  />
-                </div>
-                <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                  {[
-                    {
-                      label: "Bank account",
-                      value: banked,
-                      total: candidates.length,
-                      className: "[&>div]:bg-primary",
-                    },
-                    {
-                      label: "UZA Access requested",
-                      value: accessSupport,
-                      total: candidates.length,
-                      className: "[&>div]:bg-destructive",
-                    },
-                    {
-                      label: "No bank account",
-                      value: candidates.length - banked,
-                      total: candidates.length,
-                      className: "[&>div]:bg-muted-foreground/50",
-                    },
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-lg border border-border/60 px-3 py-3">
-                      <div className="flex items-baseline justify-between gap-2 text-sm">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span className="font-display text-xl font-bold">{item.value}</span>
-                      </div>
-                      <Progress
-                        value={item.total ? (item.value / item.total) * 100 : 0}
-                        className={`mt-2 h-1.5 ${item.className}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
-        )}
-      </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

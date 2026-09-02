@@ -9,5 +9,9 @@ export default function Modules() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <ModulesPanel />;
+  return (
+    <div className="min-h-0 flex-1 pb-8">
+      <ModulesPanel />
+    </div>
+  );
 }

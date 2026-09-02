@@ -6,7 +6,6 @@ import { listCandidates } from "@/services/candidateService";
 import { listLenderFiles } from "@/services/lenderService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { CohortsPanel } from "@/components/dashboard/CohortsPanel";
 import { CandidatesPanel } from "@/components/dashboard/CandidatesPanel";
@@ -68,12 +67,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div
-      className={cn(
-        "flex min-h-0 flex-1 flex-col",
-        tab === "overview" ? "overflow-y-auto lg:overflow-hidden" : "overflow-y-auto",
-      )}
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       {needsData && isError && (
         <Card className="border-destructive/30 bg-destructive/5 p-5">
           <p className="text-base font-medium text-destructive">Could not load dashboard data</p>

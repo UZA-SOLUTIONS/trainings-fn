@@ -66,9 +66,19 @@ function formatApplied(iso: string) {
   }
 }
 
-export function BankTrackResult({ bank }: { bank: BankTrackView }) {
+export function BankTrackResult({
+  bank,
+  filterQuery,
+  onFilterQueryChange,
+}: {
+  bank: BankTrackView;
+  filterQuery?: string;
+  onFilterQueryChange?: (value: string) => void;
+}) {
   const { summary } = bank;
-  const [candidateQuery, setCandidateQuery] = useState("");
+  const [internalQuery, setInternalQuery] = useState("");
+  const candidateQuery = filterQuery ?? internalQuery;
+  const setCandidateQuery = onFilterQueryChange ?? setInternalQuery;
 
   const filtered = useMemo(() => {
     const q = candidateQuery.trim().toUpperCase();

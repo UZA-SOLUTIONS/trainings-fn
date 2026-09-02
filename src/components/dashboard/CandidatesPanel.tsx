@@ -258,8 +258,7 @@ export function CandidatesPanel({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Candidate ID</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>Candidate</TableHead>
               <TableHead>Cohort</TableHead>
               <TableHead>Phone</TableHead>
               {!isBankPartner && <TableHead>Status</TableHead>}
@@ -273,8 +272,14 @@ export function CandidatesPanel({
           <TableBody>
             {filtered.map((c) => (
               <TableRow key={c.id}>
-                <TableCell className="font-display font-semibold">{c.candidate_code}</TableCell>
-                <TableCell className="font-medium">{c.full_name}</TableCell>
+                <TableCell>
+                  <div className="min-w-0">
+                    <p className="font-medium">{c.full_name}</p>
+                    <p className="mt-0.5 font-mono text-sm font-semibold text-primary">
+                      {c.candidate_code || "—"}
+                    </p>
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   <Link
                     to={`/cohorts/${c.cohort_id}`}
@@ -401,7 +406,7 @@ export function CandidatesPanel({
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                   No candidates match these filters.
                 </TableCell>
               </TableRow>

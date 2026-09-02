@@ -22,6 +22,7 @@ export type CreateCohortPayload = {
   location?: string | null;
   start_date?: string | null;
   partner_bank?: string | null;
+  institution_id?: string | null;
   applications_open?: boolean;
   notes?: string | null;
 };

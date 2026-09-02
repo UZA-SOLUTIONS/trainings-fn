@@ -184,8 +184,7 @@ export default function CohortDetail() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Candidate ID</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>Candidate</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Training</TableHead>
@@ -200,8 +199,14 @@ export default function CohortDetail() {
               return (
                 <Fragment key={c.id}>
                   <TableRow>
-                    <TableCell className="font-display font-semibold">{c.candidate_code}</TableCell>
-                    <TableCell>{c.full_name}</TableCell>
+                    <TableCell>
+                      <div className="min-w-0">
+                        <p className="font-medium">{c.full_name}</p>
+                        <p className="mt-0.5 font-mono text-sm font-semibold text-primary">
+                          {c.candidate_code || "—"}
+                        </p>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{c.phone ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "enrolled" ? "default" : "secondary"}>
@@ -244,9 +249,10 @@ export default function CohortDetail() {
                   </TableRow>
                   {open && (
                     <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={7} className="bg-muted/20 p-0">
+                      <TableCell colSpan={6} className="bg-muted/20 p-0">
                         <div className="grid gap-6 border-t border-border/60 p-5 md:grid-cols-3">
                           <Detail title="Identity">
+                            <Field label="Candidate ID" value={c.candidate_code} />
                             <Field label="National ID" value={c.national_id} />
                             <Field label="Date of birth" value={c.date_of_birth} />
                             <Field label="Gender" value={c.gender} />

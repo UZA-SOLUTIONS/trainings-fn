@@ -1,7 +1,5 @@
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 export default function Manage() {
-  const [params] = useSearchParams();
-  const tab = params.get("tab") ?? "overview";
-  return <Navigate to={`/dashboard?tab=${tab === "banks" ? "banks" : "overview"}`} replace />;
+  return <Navigate to="/dashboard?tab=overview" replace />;
 }

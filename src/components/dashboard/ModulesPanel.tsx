@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { listCourses } from "@/services/courseService";
 import {
   createModule,
   deleteModule,
+  downloadModuleAttachment,
   listModules,
+  readFileAsBase64,
   updateModule,
+  type ModuleAttachment,
+  type ModuleContentSection,
   type ModuleStatus,
   type TrainingModule,
 } from "@/services/moduleService";
@@ -15,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -38,6 +43,9 @@ type Draft = {
   name: string;
   code: string;
   description: string;
+  content: string;
+  contents: ModuleContentSection[];
+  attachments: ModuleAttachment[];
   sort_order: string;
   duration_hours: string;
   status: ModuleStatus;
@@ -48,6 +56,9 @@ const BLANK: Draft = {
   name: "",
   code: "",
   description: "",
+  content: "",
+  contents: [{ title: "", body: "", sort_order: 1 }],
+  attachments: [],
   sort_order: "1",
   duration_hours: "4",
   status: "active",
@@ -59,11 +70,49 @@ function statusBadge(status: TrainingModule["status"]) {
   return <Badge variant="outline">Archived</Badge>;
 }
 
+function formatBytes(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function toDraft(mod: TrainingModule): Draft {
+  const contents =
+    mod.contents?.length > 0
+      ? mod.contents.map((s, i) => ({
+          id: s.id,
+          title: s.title,
+          body: s.body || "",
+          sort_order: s.sort_order ?? i + 1,
+        }))
+      : [{ title: "", body: "", sort_order: 1 }];
+
+  return {
+    id: mod.id,
+    course_id: mod.course_id,
+    name: mod.name,
+    code: mod.code,
+    description: mod.description ?? "",
+    content: mod.content ?? "",
+    contents,
+    attachments: (mod.attachments || []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      mime_type: a.mime_type,
+      size: a.size,
+    })),
+    sort_order: String(mod.sort_order ?? 1),
+    duration_hours: String(mod.duration_hours ?? 0),
+    status: mod.status,
+  };
+}
+
 export function ModulesPanel() {
   const queryClient = useQueryClient();
   const { can } = useAuth();
   const canWrite = can("modules.write");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     data: modules = [],
@@ -83,11 +132,29 @@ export function ModulesPanel() {
 
   const saveMutation = useMutation({
     mutationFn: async (d: Draft) => {
+      const contents = d.contents
+        .filter((s) => s.title.trim())
+        .map((s, i) => ({
+          id: s.id,
+          title: s.title.trim(),
+          body: s.body.trim(),
+          sort_order: i + 1,
+        }));
+
       const payload = {
         course_id: d.course_id,
         name: d.name.trim(),
         code: d.code.trim(),
         description: d.description.trim() || null,
+        content: d.content.trim() || null,
+        contents,
+        attachments: d.attachments.map((a) => ({
+          id: a.id,
+          name: a.name,
+          mime_type: a.mime_type,
+          size: a.size,
+          ...(a.data ? { data: a.data } : {}),
+        })),
         sort_order: Number(d.sort_order) || 1,
         duration_hours: Number(d.duration_hours) || 0,
         status: d.status,
@@ -115,21 +182,71 @@ export function ModulesPanel() {
   });
 
   function startEdit(mod: TrainingModule) {
-    setDraft({
-      id: mod.id,
-      course_id: mod.course_id,
-      name: mod.name,
-      code: mod.code,
-      description: mod.description ?? "",
-      sort_order: String(mod.sort_order ?? 1),
-      duration_hours: String(mod.duration_hours ?? 0),
-      status: mod.status,
-    });
+    setDraft(toDraft(mod));
   }
 
   function confirmDelete(mod: TrainingModule) {
     if (!window.confirm(`Delete module “${mod.name}”?`)) return;
     deleteMutation.mutate(mod.id);
+  }
+
+  function updateSection(index: number, patch: Partial<ModuleContentSection>) {
+    if (!draft) return;
+    const contents = draft.contents.map((s, i) => (i === index ? { ...s, ...patch } : s));
+    setDraft({ ...draft, contents });
+  }
+
+  function addSection() {
+    if (!draft) return;
+    setDraft({
+      ...draft,
+      contents: [
+        ...draft.contents,
+        { title: "", body: "", sort_order: draft.contents.length + 1 },
+      ],
+    });
+  }
+
+  function removeSection(index: number) {
+    if (!draft) return;
+    const contents = draft.contents.filter((_, i) => i !== index);
+    setDraft({
+      ...draft,
+      contents: contents.length ? contents : [{ title: "", body: "", sort_order: 1 }],
+    });
+  }
+
+  async function onFilesSelected(files: FileList | null) {
+    if (!draft || !files?.length) return;
+    const next = [...draft.attachments];
+    for (const file of Array.from(files)) {
+      if (file.size > 2_500_000) {
+        toast.error(`“${file.name}” is too large (max 2.5 MB)`);
+        continue;
+      }
+      if (next.length >= 8) {
+        toast.error("Maximum 8 attachments per module");
+        break;
+      }
+      try {
+        const data = await readFileAsBase64(file);
+        next.push({
+          name: file.name,
+          mime_type: file.type || "application/octet-stream",
+          size: file.size,
+          data,
+        });
+      } catch {
+        toast.error(`Could not read “${file.name}”`);
+      }
+    }
+    setDraft({ ...draft, attachments: next });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removeAttachment(index: number) {
+    if (!draft) return;
+    setDraft({ ...draft, attachments: draft.attachments.filter((_, i) => i !== index) });
   }
 
   return (
@@ -139,11 +256,11 @@ export function ModulesPanel() {
           <p className="text-eyebrow text-muted-foreground">Training</p>
           <h1 className="mt-1 font-display text-4xl font-bold">Modules</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Create, update, and manage modules delivered within each course.
+            Create modules with full content, a table of contents, and uploaded materials.
           </p>
         </div>
         {canWrite && (
-          <Button type="button" onClick={() => setDraft({ ...BLANK })}>
+          <Button type="button" onClick={() => setDraft({ ...BLANK, contents: [{ title: "", body: "", sort_order: 1 }] })}>
             Add module
           </Button>
         )}
@@ -238,13 +355,150 @@ export function ModulesPanel() {
               </Select>
             </div>
             <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-              <Label htmlFor="module-desc">Description</Label>
+              <Label htmlFor="module-desc">Short description</Label>
               <Input
                 id="module-desc"
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                placeholder="One-line summary shown in lists"
               />
             </div>
+
+            <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="module-content">Full module content</Label>
+              <Textarea
+                id="module-content"
+                className="min-h-[180px]"
+                value={draft.content}
+                onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+                placeholder="Write the full lesson content, instructions, and teaching notes…"
+              />
+            </div>
+
+            <div className="space-y-3 sm:col-span-2 lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Label>Table of contents</Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add each section title and its full content.
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                  Add section
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {draft.contents.map((section, index) => (
+                  <div
+                    key={section.id || `section-${index}`}
+                    className="rounded-xl border border-border/70 p-4"
+                  >
+                    <div className="flex flex-wrap items-start gap-3">
+                      <div className="w-10 shrink-0 pt-2 text-sm font-medium text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <Input
+                          value={section.title}
+                          onChange={(e) => updateSection(index, { title: e.target.value })}
+                          placeholder="Section title"
+                        />
+                        <Textarea
+                          className="min-h-[100px]"
+                          value={section.body}
+                          onChange={(e) => updateSection(index, { body: e.target.value })}
+                          placeholder="Full content for this section…"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => removeSection(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3 sm:col-span-2 lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Label>Upload materials</Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    PDF, Word, PowerPoint, text, or images — up to 2.5 MB each (max 8).
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload files
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.png,.jpg,.jpeg,.webp,application/pdf,image/*"
+                  onChange={(e) => void onFilesSelected(e.target.files)}
+                />
+              </div>
+              {draft.attachments.length > 0 ? (
+                <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
+                  {draft.attachments.map((att, index) => (
+                    <li
+                      key={att.id || `${att.name}-${index}`}
+                      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{att.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatBytes(att.size)}
+                          {att.data ? " · new upload" : ""}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {draft.id && att.id && !att.data && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              void downloadModuleAttachment(draft.id!, att.id!, att.name).catch(
+                                (e: Error) => toast.error(e.message || "Download failed"),
+                              );
+                            }}
+                          >
+                            Download
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => removeAttachment(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No materials uploaded yet.
+                </p>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
               <Button type="submit" disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? "Saving…" : draft.id ? "Save changes" : "Create module"}
@@ -276,6 +530,7 @@ export function ModulesPanel() {
                 <TableHead>Module</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Code</TableHead>
+                <TableHead>Content</TableHead>
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
                 {canWrite && <TableHead className="text-right">Actions</TableHead>}
@@ -284,61 +539,75 @@ export function ModulesPanel() {
             <TableBody>
               {isPending && (
                 <TableRow>
-                  <TableCell colSpan={canWrite ? 7 : 6} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={canWrite ? 8 : 7} className="py-8 text-center text-muted-foreground">
                     Loading modules…
                   </TableCell>
                 </TableRow>
               )}
               {!isPending &&
-                modules.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="tabular-nums text-muted-foreground">{m.sort_order}</TableCell>
-                    <TableCell>
-                      <div className="min-w-0">
-                        <p className="font-medium">{m.name}</p>
-                        {m.description && (
-                          <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                            {m.description}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {m.course_name || "—"}
-                      {m.course_code ? (
-                        <span className="ml-1 font-mono text-xs">({m.course_code})</span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{m.code}</TableCell>
-                    <TableCell className="tabular-nums text-muted-foreground">
-                      {m.duration_hours}
-                    </TableCell>
-                    <TableCell>{statusBadge(m.status)}</TableCell>
-                    {canWrite && (
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button type="button" variant="outline" size="sm" onClick={() => startEdit(m)}>
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive"
-                            disabled={deleteMutation.isPending}
-                            onClick={() => confirmDelete(m)}
-                          >
-                            Delete
-                          </Button>
+                modules.map((m) => {
+                  const sectionCount = m.contents?.length || 0;
+                  const fileCount = m.attachments?.length || 0;
+                  const hasBody = Boolean(m.content?.trim());
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="tabular-nums text-muted-foreground">{m.sort_order}</TableCell>
+                      <TableCell>
+                        <div className="min-w-0">
+                          <p className="font-medium">{m.name}</p>
+                          {m.description && (
+                            <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+                              {m.description}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                      <TableCell className="text-muted-foreground">
+                        {m.course_name || "—"}
+                        {m.course_code ? (
+                          <span className="ml-1 font-mono text-xs">({m.course_code})</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{m.code}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {[
+                          hasBody ? "Body" : null,
+                          sectionCount ? `${sectionCount} sections` : null,
+                          fileCount ? `${fileCount} files` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "Empty"}
+                      </TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {m.duration_hours}
+                      </TableCell>
+                      <TableCell>{statusBadge(m.status)}</TableCell>
+                      {canWrite && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(m)}>
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive"
+                              disabled={deleteMutation.isPending}
+                              onClick={() => confirmDelete(m)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
               {!isPending && modules.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={canWrite ? 7 : 6}
+                    colSpan={canWrite ? 8 : 7}
                     className="py-10 text-center text-muted-foreground"
                   >
                     No modules yet.

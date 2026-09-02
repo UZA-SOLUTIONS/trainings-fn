@@ -1,7 +1,7 @@
 import { api, type ApiResponse } from "./api";
 import type { Institution } from "@/utils/institutions";
 
-export type InstitutionPayload = Omit<Institution, "id">;
+export type InstitutionPayload = Omit<Institution, "id" | "bank_id">;
 
 export async function listInstitutions(opts: { activeOnly?: boolean } = {}) {
   const params =

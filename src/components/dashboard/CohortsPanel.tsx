@@ -8,6 +8,7 @@ import {
   updateCohort,
   type Cohort,
 } from "@/services/cohortService";
+import { useInstitutions } from "@/utils/institutions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -37,6 +45,7 @@ type Draft = {
   capacity: string;
   location: string;
   start_date: string;
+  institution_id: string;
   partner_bank: string;
   applications_open: boolean;
 };
@@ -47,7 +56,8 @@ const BLANK: Draft = {
   capacity: "30",
   location: "",
   start_date: "",
-  partner_bank: "Unguka Bank",
+  institution_id: "",
+  partner_bank: "",
   applications_open: true,
 };
 
@@ -62,6 +72,7 @@ export function CohortsPanel({
   const { can } = useAuth();
   const canWrite = can("cohorts.write");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const { data: banks = [] } = useInstitutions({ activeOnly: true });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
@@ -81,13 +92,15 @@ export function CohortsPanel({
 
   const saveMutation = useMutation({
     mutationFn: async (d: Draft) => {
+      const bank = banks.find((b) => b.id === d.institution_id);
       const payload = {
         name: d.name.trim(),
         code: d.code.trim(),
         capacity: Number(d.capacity) || 30,
         location: d.location.trim() || null,
         start_date: d.start_date || null,
-        partner_bank: d.partner_bank.trim() || null,
+        institution_id: d.institution_id || null,
+        partner_bank: bank?.name || d.partner_bank.trim() || null,
         applications_open: d.applications_open,
       };
       if (d.id) return updateCohort(d.id, payload);
@@ -118,6 +131,7 @@ export function CohortsPanel({
       capacity: String(c.capacity),
       location: c.location ?? "",
       start_date: c.start_date ?? "",
+      institution_id: c.institution_id ?? "",
       partner_bank: c.partner_bank ?? "",
       applications_open: c.applications_open,
     });
@@ -202,12 +216,35 @@ export function CohortsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="partner_bank">Partner bank</Label>
-              <Input
-                id="partner_bank"
-                value={draft.partner_bank}
-                onChange={(e) => setDraft({ ...draft, partner_bank: e.target.value })}
-              />
+              <Label>Partner bank</Label>
+              <Select
+                value={draft.institution_id || "none"}
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    setDraft({ ...draft, institution_id: "", partner_bank: "" });
+                    return;
+                  }
+                  const bank = banks.find((b) => b.id === value);
+                  setDraft({
+                    ...draft,
+                    institution_id: value,
+                    partner_bank: bank?.name ?? "",
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select bank partner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No bank linked</SelectItem>
+                  {banks.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                      {b.bank_id ? ` · ${b.bank_id}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-3">
               <Switch
