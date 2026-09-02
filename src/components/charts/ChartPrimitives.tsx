@@ -55,7 +55,14 @@ export function DonutChart({
         })}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="font-display text-2xl font-bold leading-none tracking-tight">{centerLabel}</span>
+        <span
+          className={cn(
+            "font-display font-bold leading-none tracking-tight",
+            size <= 88 ? "text-xl" : "text-2xl",
+          )}
+        >
+          {centerLabel}
+        </span>
         {centerSub && (
           <span className="mt-0.5 text-xs uppercase tracking-wider text-muted-foreground">{centerSub}</span>
         )}
@@ -111,12 +118,18 @@ export function StatRing({
     <Card className="border-border/70 p-4 sm:p-5">
       <p className="text-eyebrow text-muted-foreground">{title}</p>
       <div className="mt-4 flex items-center gap-4">
-        <DonutChart segments={segments} centerLabel={centerLabel} centerSub={centerSub} />
+        <DonutChart
+          segments={segments}
+          centerLabel={centerLabel}
+          centerSub={centerSub}
+          size={104}
+          strokeWidth={11}
+        />
         <ul className="min-w-0 flex-1 space-y-2">
           {legend.map((item) => (
             <li key={item.label} className="flex items-center gap-2 text-sm">
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: item.color }}
                 aria-hidden
               />

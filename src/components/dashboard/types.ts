@@ -1,6 +1,8 @@
 export type DashboardTab =
   | "overview"
   | "cohorts"
+  | "courses"
+  | "modules"
   | "candidates"
   | "banks"
   | "profile"
@@ -9,6 +11,8 @@ export type DashboardTab =
 export const DASHBOARD_TABS: { id: DashboardTab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "cohorts", label: "Cohorts" },
+  { id: "courses", label: "Courses" },
+  { id: "modules", label: "Modules" },
   { id: "candidates", label: "Candidates" },
   { id: "banks", label: "Banks" },
   { id: "profile", label: "Profile" },
@@ -19,6 +23,8 @@ export function isDashboardTab(value: string | null): value is DashboardTab {
   return (
     value === "overview" ||
     value === "cohorts" ||
+    value === "courses" ||
+    value === "modules" ||
     value === "candidates" ||
     value === "banks" ||
     value === "profile" ||

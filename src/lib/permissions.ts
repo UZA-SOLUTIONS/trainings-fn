@@ -14,6 +14,8 @@ export type PermissionAction =
 const TAB_ACCESS: Record<DashboardTab, StaffUser["role"][]> = {
   overview: ["admin", "instructor", "bank_partner"],
   cohorts: ["admin", "instructor", "bank_partner"],
+  courses: ["admin", "instructor"],
+  modules: ["admin", "instructor"],
   candidates: ["admin", "instructor", "bank_partner"],
   banks: ["admin"],
   profile: ["admin", "instructor", "bank_partner"],

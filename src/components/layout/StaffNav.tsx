@@ -10,6 +10,8 @@ import {
   FiUserCheck,
   FiUser,
   FiSettings,
+  FiBookOpen,
+  FiLayers,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +29,8 @@ const WORKSPACE_NAV: {
 }[] = [
   { tab: "overview", label: "Overview", icon: FiBarChart2 },
   { tab: "cohorts", label: "Cohorts", icon: FiUsers },
+  { tab: "courses", label: "Courses", icon: FiBookOpen },
+  { tab: "modules", label: "Modules", icon: FiLayers },
   { tab: "candidates", label: "Candidates", icon: FiUserCheck },
   { tab: "banks", label: "Banks", icon: FiBriefcase },
 ];

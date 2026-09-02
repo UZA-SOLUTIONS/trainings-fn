@@ -6,8 +6,11 @@ import { listCandidates } from "@/services/candidateService";
 import { listLenderFiles } from "@/services/lenderService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { CohortsPanel } from "@/components/dashboard/CohortsPanel";
+import { CoursesPanel } from "@/components/dashboard/CoursesPanel";
+import { ModulesPanel } from "@/components/dashboard/ModulesPanel";
 import { CandidatesPanel } from "@/components/dashboard/CandidatesPanel";
 import { LenderFilesPanel } from "@/components/dashboard/LenderFilesPanel";
 import { BanksPanel } from "@/components/dashboard/BanksPanel";
@@ -63,7 +66,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div>
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        tab === "overview" ? "overflow-y-auto lg:overflow-hidden" : "overflow-y-auto",
+      )}
+    >
       {needsData && isError && (
         <Card className="border-destructive/30 bg-destructive/5 p-5">
           <p className="text-base font-medium text-destructive">Could not load dashboard data</p>
@@ -87,6 +95,10 @@ export default function Dashboard() {
       {tab === "cohorts" && !isPending && !isError && data && (
         <CohortsPanel cohorts={data.cohorts} candidates={data.candidates} />
       )}
+
+      {tab === "courses" && <CoursesPanel />}
+
+      {tab === "modules" && <ModulesPanel />}
 
       {tab === "candidates" && isBankPartner && <LenderFilesPanel />}
 

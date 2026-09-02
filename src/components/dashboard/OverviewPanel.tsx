@@ -30,11 +30,20 @@ export function OverviewPanel({
   role: StaffRole;
 }) {
   return (
-    <div>
-      <p className="text-eyebrow text-muted-foreground">Overview</p>
-      <h1 className="mt-2 font-display text-4xl font-bold">{OVERVIEW_TITLES[role]}</h1>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0">
+        <p className="text-eyebrow text-muted-foreground">Overview</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          {OVERVIEW_TITLES[role]}
+        </h1>
+      </header>
 
-      <OverviewVisuals cohorts={cohorts} candidates={candidates} role={role} />
+      <OverviewVisuals
+        className="mt-5 min-h-0 flex-1"
+        cohorts={cohorts}
+        candidates={candidates}
+        role={role}
+      />
     </div>
   );
 }

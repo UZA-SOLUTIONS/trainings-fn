@@ -29,12 +29,14 @@ const WORKSPACE_TABS = DASHBOARD_TABS.filter(
 
 export function SettingsPanel() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, canAccessTab } = useAuth();
   const [prefs, setPrefs] = useState<DashboardPreferences>(() => loadDashboardPreferences());
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+
+  const workspaceTabs = WORKSPACE_TABS.filter((t) => canAccessTab(t.id));
 
   useEffect(() => {
     saveDashboardPreferences(prefs);
@@ -85,7 +87,7 @@ export function SettingsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {WORKSPACE_TABS.map((tab) => (
+                  {workspaceTabs.map((tab) => (
                     <SelectItem key={tab.id} value={tab.id}>
                       {tab.label}
                     </SelectItem>
