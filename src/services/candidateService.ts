@@ -167,6 +167,11 @@ export async function updateCandidate(id: string, patch: UpdateCandidatePatch) {
   return data.data.candidate;
 }
 
+export async function deleteCandidate(id: string) {
+  const { data } = await api.delete<ApiResponse<{ id: string }>>(`/candidates/${id}`);
+  return data.data;
+}
+
 export type TrackMilestoneStatus =
   | "complete"
   | "in_progress"

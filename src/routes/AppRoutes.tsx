@@ -12,6 +12,8 @@ const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
 const Login = lazy(() => import("@/pages/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Courses = lazy(() => import("@/pages/Courses"));
+const Modules = lazy(() => import("@/pages/Modules"));
 const CohortDetail = lazy(() => import("@/pages/CohortDetail"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -42,6 +44,8 @@ export function AppRoutes() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/modules" element={<Modules />} />
               <Route path="/manage" element={<Navigate to="/dashboard?tab=overview" replace />} />
               <Route path="/institutions" element={<Navigate to="/dashboard?tab=banks" replace />} />
               <Route path="/cohorts/:cohortId" element={<CohortDetail />} />

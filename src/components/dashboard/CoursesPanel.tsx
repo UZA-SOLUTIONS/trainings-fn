@@ -1,12 +1,26 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { createCourse, listCourses, type Course } from "@/services/courseService";
+import {
+  createCourse,
+  deleteCourse,
+  listCourses,
+  updateCourse,
+  type Course,
+  type CourseStatus,
+} from "@/services/courseService";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -17,6 +31,23 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 
+type Draft = {
+  id?: string;
+  name: string;
+  code: string;
+  description: string;
+  duration_weeks: string;
+  status: CourseStatus;
+};
+
+const BLANK: Draft = {
+  name: "",
+  code: "",
+  description: "",
+  duration_weeks: "4",
+  status: "active",
+};
+
 function statusBadge(status: Course["status"]) {
   if (status === "active") return <Badge className="bg-primary/15 text-primary">Active</Badge>;
   if (status === "draft") return <Badge variant="secondary">Draft</Badge>;
@@ -26,61 +57,101 @@ function statusBadge(status: Course["status"]) {
 export function CoursesPanel() {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+  const [draft, setDraft] = useState<Draft | null>(null);
+
   const { data: courses = [], isPending, isError, error, refetch } = useQuery({
     queryKey: ["courses"],
     queryFn: listCourses,
   });
 
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    description: "",
-    duration_weeks: "4",
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      await createCourse({
-        name: form.name,
-        code: form.code,
-        description: form.description || null,
-        duration_weeks: Number(form.duration_weeks) || 4,
-        status: "active",
-      });
+  const saveMutation = useMutation({
+    mutationFn: async (d: Draft) => {
+      const payload = {
+        name: d.name.trim(),
+        code: d.code.trim(),
+        description: d.description.trim() || null,
+        duration_weeks: Number(d.duration_weeks) || 4,
+        status: d.status,
+      };
+      if (d.id) return updateCourse(d.id, payload);
+      return createCourse(payload);
     },
-    onSuccess: () => {
-      toast.success("Course created");
-      setForm({ name: "", code: "", description: "", duration_weeks: "4" });
+    onSuccess: (_data, d) => {
+      toast.success(d.id ? "Course updated" : "Course created");
+      setDraft(null);
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["modules"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteCourse,
+    onSuccess: () => {
+      toast.success("Course deleted");
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["modules"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function startEdit(course: Course) {
+    setDraft({
+      id: course.id,
+      name: course.name,
+      code: course.code,
+      description: course.description ?? "",
+      duration_weeks: String(course.duration_weeks ?? 4),
+      status: course.status,
+    });
+  }
+
+  function confirmDelete(course: Course) {
+    if (
+      !window.confirm(
+        `Delete course “${course.name}”? Its modules will also be deleted.`,
+      )
+    ) {
+      return;
+    }
+    deleteMutation.mutate(course.id);
+  }
+
   return (
     <div>
-      <p className="text-eyebrow text-muted-foreground">Training</p>
-      <h1 className="mt-2 font-display text-4xl font-bold">Courses</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">
-        Training courses available in the programme. Instructors can review the full course list.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-eyebrow text-muted-foreground">Training</p>
+          <h1 className="mt-1 font-display text-4xl font-bold">Courses</h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Create, update, and manage training courses in the programme.
+          </p>
+        </div>
+        {isAdmin && (
+          <Button type="button" onClick={() => setDraft({ ...BLANK })}>
+            Add course
+          </Button>
+        )}
+      </div>
 
-      {isAdmin && (
-        <Card className="mt-8 border-border/70 p-6">
-          <h2 className="font-display text-xl font-semibold">Create a course</h2>
+      {draft && isAdmin && (
+        <Card className="mt-6 border-border/70 p-6">
+          <h2 className="font-display text-xl font-semibold">
+            {draft.id ? "Edit course" : "Create a course"}
+          </h2>
           <form
             className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
             onSubmit={(e) => {
               e.preventDefault();
-              createMutation.mutate();
+              saveMutation.mutate(draft);
             }}
           >
             <div className="space-y-2">
               <Label htmlFor="course-name">Name</Label>
               <Input
                 id="course-name"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 required
               />
             </div>
@@ -88,8 +159,8 @@ export function CoursesPanel() {
               <Label htmlFor="course-code">Code</Label>
               <Input
                 id="course-code"
-                value={form.code}
-                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                value={draft.code}
+                onChange={(e) => setDraft({ ...draft, code: e.target.value })}
                 required
               />
             </div>
@@ -99,21 +170,40 @@ export function CoursesPanel() {
                 id="course-weeks"
                 type="number"
                 min={1}
-                value={form.duration_weeks}
-                onChange={(e) => setForm((f) => ({ ...f, duration_weeks: e.target.value }))}
+                value={draft.duration_weeks}
+                onChange={(e) => setDraft({ ...draft, duration_weeks: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={draft.status}
+                onValueChange={(value: CourseStatus) => setDraft({ ...draft, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 sm:col-span-2 lg:col-span-4">
               <Label htmlFor="course-desc">Description</Label>
               <Input
                 id="course-desc"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
               />
             </div>
-            <div className="sm:col-span-2 lg:col-span-4">
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creating…" : "Create course"}
+            <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-4">
+              <Button type="submit" disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving…" : draft.id ? "Save changes" : "Create course"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setDraft(null)}>
+                Cancel
               </Button>
             </div>
           </form>
@@ -140,12 +230,13 @@ export function CoursesPanel() {
                 <TableHead>Duration</TableHead>
                 <TableHead>Modules</TableHead>
                 <TableHead>Status</TableHead>
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-muted-foreground">
                     Loading courses…
                   </TableCell>
                 </TableRow>
@@ -169,11 +260,33 @@ export function CoursesPanel() {
                     </TableCell>
                     <TableCell className="tabular-nums">{c.module_count ?? 0}</TableCell>
                     <TableCell>{statusBadge(c.status)}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => startEdit(c)}>
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => confirmDelete(c)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               {!isPending && courses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={isAdmin ? 6 : 5}
+                    className="py-10 text-center text-muted-foreground"
+                  >
                     No courses yet.
                   </TableCell>
                 </TableRow>

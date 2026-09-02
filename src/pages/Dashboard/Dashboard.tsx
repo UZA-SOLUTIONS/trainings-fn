@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listCohorts } from "@/services/cohortService";
 import { listCandidates } from "@/services/candidateService";
@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { CohortsPanel } from "@/components/dashboard/CohortsPanel";
-import { CoursesPanel } from "@/components/dashboard/CoursesPanel";
-import { ModulesPanel } from "@/components/dashboard/ModulesPanel";
 import { CandidatesPanel } from "@/components/dashboard/CandidatesPanel";
 import { LenderFilesPanel } from "@/components/dashboard/LenderFilesPanel";
 import { BanksPanel } from "@/components/dashboard/BanksPanel";
@@ -96,9 +94,9 @@ export default function Dashboard() {
         <CohortsPanel cohorts={data.cohorts} candidates={data.candidates} />
       )}
 
-      {tab === "courses" && <CoursesPanel />}
+      {tab === "courses" && <Navigate to="/courses" replace />}
 
-      {tab === "modules" && <ModulesPanel />}
+      {tab === "modules" && <Navigate to="/modules" replace />}
 
       {tab === "candidates" && isBankPartner && <LenderFilesPanel />}
 

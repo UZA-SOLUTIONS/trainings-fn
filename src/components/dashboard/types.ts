@@ -33,6 +33,8 @@ export function isDashboardTab(value: string | null): value is DashboardTab {
 }
 
 export function dashboardTabFromPath(pathname: string, search: string): DashboardTab {
+  if (pathname.startsWith("/courses")) return "courses";
+  if (pathname.startsWith("/modules")) return "modules";
   if (pathname.startsWith("/cohorts")) return "candidates";
   const raw = new URLSearchParams(search).get("tab");
   return isDashboardTab(raw) ? raw : "overview";

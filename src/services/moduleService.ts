@@ -45,3 +45,8 @@ export async function updateModule(id: string, payload: Partial<CreateModulePayl
   );
   return data.data.module;
 }
+
+export async function deleteModule(id: string) {
+  const { data } = await api.delete<ApiResponse<{ module: TrainingModule }>>(`/modules/${id}`);
+  return data.data.module;
+}

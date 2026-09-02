@@ -28,3 +28,10 @@ export async function updateInstitution(id: string, payload: Partial<Institution
   );
   return data.data.institution;
 }
+
+export async function deleteInstitution(id: string) {
+  const { data } = await api.delete<ApiResponse<{ institution: Institution }>>(
+    `/institutions/${id}`,
+  );
+  return data.data.institution;
+}

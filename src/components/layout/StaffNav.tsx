@@ -70,10 +70,12 @@ export function StaffNav() {
 
   function navLink(tab: DashboardTab, label: string, Icon: typeof FiBarChart2) {
     const active = isActive(tab);
+    const href =
+      tab === "courses" ? "/courses" : tab === "modules" ? "/modules" : `/dashboard?tab=${tab}`;
     return (
       <Link
         key={tab}
-        to={`/dashboard?tab=${tab}`}
+        to={href}
         onClick={() => setOpen(false)}
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-3.5 text-base font-medium transition-colors",

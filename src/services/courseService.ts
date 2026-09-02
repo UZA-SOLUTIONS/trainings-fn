@@ -41,3 +41,8 @@ export async function updateCourse(id: string, payload: Partial<CreateCoursePayl
   const { data } = await api.patch<ApiResponse<{ course: Course }>>(`/courses/${id}`, payload);
   return data.data.course;
 }
+
+export async function deleteCourse(id: string) {
+  const { data } = await api.delete<ApiResponse<{ course: Course }>>(`/courses/${id}`);
+  return data.data.course;
+}

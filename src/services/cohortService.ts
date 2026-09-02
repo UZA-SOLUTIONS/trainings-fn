@@ -60,3 +60,8 @@ export async function updateCohort(id: string, payload: Partial<Cohort>) {
   const { data } = await api.patch<ApiResponse<{ cohort: Cohort }>>(`/cohorts/${id}`, payload);
   return data.data.cohort;
 }
+
+export async function deleteCohort(id: string) {
+  const { data } = await api.delete<ApiResponse<{ cohort: Cohort }>>(`/cohorts/${id}`);
+  return data.data.cohort;
+}

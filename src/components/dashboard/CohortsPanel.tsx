@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import {
   createCohort,
+  deleteCohort,
   updateCohort,
   type Cohort,
 } from "@/services/cohortService";
@@ -23,9 +24,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+
 type Candidate = {
   cohort_id: string;
   status: string;
+};
+
+type Draft = {
+  id?: string;
+  name: string;
+  code: string;
+  capacity: string;
+  location: string;
+  start_date: string;
+  partner_bank: string;
+  applications_open: boolean;
+};
+
+const BLANK: Draft = {
+  name: "",
+  code: "",
+  capacity: "30",
+  location: "",
+  start_date: "",
+  partner_bank: "Unguka Bank",
+  applications_open: true,
 };
 
 export function CohortsPanel({
@@ -37,6 +60,12 @@ export function CohortsPanel({
 }) {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+  const [draft, setDraft] = useState<Draft | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
+    queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
+  }
 
   const toggleOpen = useMutation({
     mutationFn: async ({ id, open }: { id: string; open: boolean }) => {
@@ -44,69 +73,92 @@ export function CohortsPanel({
     },
     onSuccess: () => {
       toast.success("Cohort updated");
-      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    capacity: "30",
-    location: "",
-    start_date: "",
-    partner_bank: "Unguka Bank",
+  const saveMutation = useMutation({
+    mutationFn: async (d: Draft) => {
+      const payload = {
+        name: d.name.trim(),
+        code: d.code.trim(),
+        capacity: Number(d.capacity) || 30,
+        location: d.location.trim() || null,
+        start_date: d.start_date || null,
+        partner_bank: d.partner_bank.trim() || null,
+        applications_open: d.applications_open,
+      };
+      if (d.id) return updateCohort(d.id, payload);
+      return createCohort(payload);
+    },
+    onSuccess: (_data, d) => {
+      toast.success(d.id ? "Cohort updated" : "Cohort created");
+      setDraft(null);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      await createCohort({
-        name: form.name,
-        code: form.code,
-        capacity: Number(form.capacity) || 30,
-        location: form.location || null,
-        start_date: form.start_date || null,
-        partner_bank: form.partner_bank || null,
-      });
-    },
+  const deleteMutation = useMutation({
+    mutationFn: deleteCohort,
     onSuccess: () => {
-      toast.success("Cohort created");
-      setForm({
-        name: "",
-        code: "",
-        capacity: "30",
-        location: "",
-        start_date: "",
-        partner_bank: "Unguka Bank",
-      });
-      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
+      toast.success("Cohort deleted");
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  function startEdit(c: Cohort) {
+    setDraft({
+      id: c.id,
+      name: c.name,
+      code: c.code,
+      capacity: String(c.capacity),
+      location: c.location ?? "",
+      start_date: c.start_date ?? "",
+      partner_bank: c.partner_bank ?? "",
+      applications_open: c.applications_open,
+    });
+  }
+
+  function confirmDelete(c: Cohort) {
+    if (!window.confirm(`Delete cohort “${c.name}”?`)) return;
+    deleteMutation.mutate(c.id);
+  }
 
   return (
     <div>
-      <p className="text-eyebrow text-muted-foreground">Training</p>
-      <h1 className="mt-2 font-display text-4xl font-bold">Cohorts</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-eyebrow text-muted-foreground">Training</p>
+          <h1 className="mt-1 font-display text-4xl font-bold">Cohorts</h1>
+        </div>
+        {isAdmin && (
+          <Button type="button" onClick={() => setDraft({ ...BLANK })}>
+            Add cohort
+          </Button>
+        )}
+      </div>
 
-      {isAdmin && (
-        <Card className="mt-8 border-border/70 p-6">
-          <h2 className="font-display text-xl font-semibold">Create a cohort</h2>
+      {draft && isAdmin && (
+        <Card className="mt-6 border-border/70 p-6">
+          <h2 className="font-display text-xl font-semibold">
+            {draft.id ? "Edit cohort" : "Create a cohort"}
+          </h2>
           <form
             className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             onSubmit={(e) => {
               e.preventDefault();
-              createMutation.mutate();
+              saveMutation.mutate(draft);
             }}
           >
             <div className="space-y-1.5">
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 required
                 maxLength={100}
               />
@@ -115,8 +167,8 @@ export function CohortsPanel({
               <Label htmlFor="code">Code</Label>
               <Input
                 id="code"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                value={draft.code}
+                onChange={(e) => setDraft({ ...draft, code: e.target.value })}
                 required
                 maxLength={30}
               />
@@ -127,16 +179,16 @@ export function CohortsPanel({
                 id="capacity"
                 type="number"
                 min={1}
-                value={form.capacity}
-                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                value={draft.capacity}
+                onChange={(e) => setDraft({ ...draft, capacity: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                value={draft.location}
+                onChange={(e) => setDraft({ ...draft, location: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
@@ -144,21 +196,32 @@ export function CohortsPanel({
               <Input
                 id="start_date"
                 type="date"
-                value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                value={draft.start_date}
+                onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="partner_bank">Partner bank</Label>
               <Input
                 id="partner_bank"
-                value={form.partner_bank}
-                onChange={(e) => setForm({ ...form, partner_bank: e.target.value })}
+                value={draft.partner_bank}
+                onChange={(e) => setDraft({ ...draft, partner_bank: e.target.value })}
               />
             </div>
-            <div className="sm:col-span-2 lg:col-span-3">
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creating…" : "Create cohort"}
+            <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-3">
+              <Switch
+                checked={draft.applications_open}
+                onCheckedChange={(v) => setDraft({ ...draft, applications_open: v })}
+                id="applications_open"
+              />
+              <Label htmlFor="applications_open">Applications open</Label>
+            </div>
+            <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
+              <Button type="submit" disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving…" : draft.id ? "Save changes" : "Create cohort"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setDraft(null)}>
+                Cancel
               </Button>
             </div>
           </form>
@@ -197,15 +260,9 @@ export function CohortsPanel({
                       <p className="text-sm text-muted-foreground">{c.code}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.location ?? "TBC"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.start_date ?? "TBC"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.partner_bank ?? "—"}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{c.location ?? "TBC"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.start_date ?? "TBC"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.partner_bank ?? "—"}</TableCell>
                   <TableCell>
                     <div className="min-w-[7rem]">
                       <p className="text-base font-medium">
@@ -230,9 +287,28 @@ export function CohortsPanel({
                     </TableCell>
                   )}
                   <TableCell className="text-right">
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={`/cohorts/${c.id}`}>View candidates</Link>
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      {isAdmin && (
+                        <>
+                          <Button type="button" variant="outline" size="sm" onClick={() => startEdit(c)}>
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => confirmDelete(c)}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/cohorts/${c.id}`}>View</Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -249,6 +325,7 @@ export function CohortsPanel({
             )}
           </TableBody>
         </Table>
-      </Card>    </div>
+      </Card>
+    </div>
   );
 }

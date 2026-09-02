@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { createInstitution, updateInstitution } from "@/services/institutionService";
+import { createInstitution, deleteInstitution, updateInstitution } from "@/services/institutionService";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,18 @@ export function BanksPanel() {
     },
   });
 
+  const remove = useMutation({
+    mutationFn: deleteInstitution,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financing-institutions"] });
+    },
+  });
+
+  function confirmDelete(inst: Institution) {
+    if (!window.confirm(`Delete institution “${inst.name}”?`)) return;
+    remove.mutate(inst.id);
+  }
+
   const rows = institutions ?? [];
 
   return (
@@ -186,13 +198,24 @@ export function BanksPanel() {
                   </TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDraft({ ...inst })}
-                      >
-                        Edit formula
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDraft({ ...inst })}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          disabled={remove.isPending}
+                          onClick={() => confirmDelete(inst)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
