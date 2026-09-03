@@ -1,37 +1,79 @@
 import { Link, useLocation } from "react-router-dom";
-import { FiMenu, FiX, FiArrowUpRight } from "react-icons/fi";
-import { useEffect, useState } from "react";
+import { FiMenu, FiX, FiArrowUpRight, FiChevronDown } from "react-icons/fi";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { NavMegaMenu } from "@/components/layout/NavMegaMenu";
+import {
+  NAV_MEGA_MENUS,
+  type NavMegaId,
+} from "@/content/navMegaMenus";
 import { cn } from "@/lib/utils";
 
+const MEGA_BY_PATH: Record<string, NavMegaId> = {};
+
 const links = [
-  { to: "/programme", label: "Programme" },
-  { to: "/training", label: "Training" },
+  { to: "/#path", label: "Programme", mega: "programme" as const },
+  { to: "/apply", label: "Training", mega: "training" as const },
   { to: "/track", label: "Track ID" },
-  { to: "/financing", label: "Financing" },
+  { to: "/#financing", label: "Financing", mega: "financing" as const },
   { to: "/requirements", label: "Requirements" },
-];
+] as const;
 
 /** Pages whose first viewport is a dark full-bleed hero — light nav chrome until scroll. */
 const DARK_HERO_PATHS = new Set([
   "/",
   "/track",
-  "/programme",
-  "/financing",
-  "/training",
   "/requirements",
 ]);
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [megaOpen, setMegaOpen] = useState<NavMegaId | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const megaCloseTimer = useRef<number | null>(null);
   const location = useLocation();
-  const transparent = !scrolled && !open;
-  const onDarkHero = DARK_HERO_PATHS.has(location.pathname) && transparent;
+
+  /** Transparent chrome only on dark heroes at top; mobile drawer forces solid. Mega menus do not. */
+  const transparent =
+    !scrolled && !open && DARK_HERO_PATHS.has(location.pathname);
+  const onDarkHero = transparent;
+
+  function clearMegaCloseTimer() {
+    if (megaCloseTimer.current != null) {
+      window.clearTimeout(megaCloseTimer.current);
+      megaCloseTimer.current = null;
+    }
+  }
+
+  function openMega(id: NavMegaId) {
+    clearMegaCloseTimer();
+    setOpen(false);
+    setMegaOpen(id);
+  }
+
+  function scheduleCloseMega() {
+    clearMegaCloseTimer();
+    megaCloseTimer.current = window.setTimeout(() => {
+      setMegaOpen(null);
+      megaCloseTimer.current = null;
+    }, 140);
+  }
+
+  function closeMega() {
+    clearMegaCloseTimer();
+    setMegaOpen(null);
+  }
+
+  function toggleMega(id: NavMegaId) {
+    clearMegaCloseTimer();
+    setOpen(false);
+    setMegaOpen((current) => (current === id ? null : id));
+  }
 
   useEffect(() => {
     setOpen(false);
-  }, [location.pathname, location.hash]);
+    closeMega();
+  }, [location.pathname, location.hash, location.search]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -49,6 +91,8 @@ export function Navbar() {
     };
   }, [open]);
 
+  useEffect(() => () => clearMegaCloseTimer(), []);
+
   return (
     <header
       className={cn(
@@ -56,6 +100,7 @@ export function Navbar() {
         transparent
           ? "border-b border-transparent bg-transparent shadow-none"
           : "border-b border-border/70 bg-background/95 shadow-sm backdrop-blur-md",
+        megaOpen && "z-[60]",
       )}
     >
       <div className="container-page relative z-50 flex h-14 items-center justify-between gap-3 sm:h-16 md:h-[4.25rem]">
@@ -63,7 +108,10 @@ export function Navbar() {
           to="/"
           className="inline-flex shrink-0 items-center"
           aria-label="UZA Mobility home"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            closeMega();
+          }}
         >
           <img
             src={onDarkHero ? "/white.avif" : "/logo.avif"}
@@ -74,26 +122,66 @@ export function Navbar() {
 
         <nav
           className={cn(
-            "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-5 text-base xl:flex xl:gap-7",
+            "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-8 text-lg xl:flex xl:gap-11",
             onDarkHero ? "text-ink-foreground/75" : "text-muted-foreground",
           )}
         >
-          {links.map((l) => (
-            <Link
-              key={l.label}
-              to={l.to}
-              className={cn(
-                "whitespace-nowrap font-medium transition-colors",
-                onDarkHero ? "hover:text-ink-foreground" : "hover:text-foreground",
-                location.pathname === l.to &&
-                  (onDarkHero
-                    ? "font-semibold text-ink-foreground"
-                    : "font-semibold text-foreground"),
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const megaId = "mega" in l ? l.mega : undefined;
+            const isMegaActive = megaId != null && megaOpen === megaId;
+            const isPathActive =
+              location.pathname === l.to || MEGA_BY_PATH[location.pathname] === megaId;
+
+            if (megaId) {
+              return (
+                <button
+                  key={l.label}
+                  type="button"
+                  onMouseEnter={() => openMega(megaId)}
+                  onMouseLeave={scheduleCloseMega}
+                  onFocus={() => openMega(megaId)}
+                  onClick={() => toggleMega(megaId)}
+                  aria-haspopup="dialog"
+                  aria-expanded={isMegaActive}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 whitespace-nowrap font-medium transition-colors",
+                    onDarkHero ? "hover:text-ink-foreground" : "hover:text-foreground",
+                    (isPathActive || isMegaActive) &&
+                      (onDarkHero
+                        ? "font-semibold text-ink-foreground"
+                        : "font-semibold text-foreground"),
+                  )}
+                >
+                  {l.label}
+                  <FiChevronDown
+                    className={cn(
+                      "size-4 transition-transform",
+                      isMegaActive && "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={l.label}
+                to={l.to}
+                onClick={closeMega}
+                className={cn(
+                  "whitespace-nowrap font-medium transition-colors",
+                  onDarkHero ? "hover:text-ink-foreground" : "hover:text-foreground",
+                  location.pathname === l.to &&
+                    (onDarkHero
+                      ? "font-semibold text-ink-foreground"
+                      : "font-semibold text-foreground"),
+                )}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -106,7 +194,9 @@ export function Navbar() {
                 "border border-white/35 bg-volt text-volt-foreground hover:bg-volt/90",
             )}
           >
-            <Link to="/apply">Apply for training</Link>
+            <Link to="/apply" onClick={closeMega}>
+              Apply for training
+            </Link>
           </Button>
           <button
             type="button"
@@ -119,7 +209,10 @@ export function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => {
+              closeMega();
+              setOpen((v) => !v);
+            }}
           >
             {open ? <FiX size={22} strokeWidth={1.75} /> : <FiMenu size={22} strokeWidth={1.75} />}
           </button>
@@ -149,8 +242,9 @@ export function Navbar() {
           <ul className="flex flex-col border-t border-border/60">
             {links.map((l, i) => {
               const index = String(i + 1).padStart(2, "0");
-              const className =
-                "group flex min-h-14 items-center justify-between gap-4 border-b border-border/60 py-3 transition-colors active:bg-muted/50";
+              const megaId = "mega" in l ? l.mega : undefined;
+              const rowClass =
+                "group flex min-h-14 w-full items-center justify-between gap-4 border-b border-border/60 py-3 text-left transition-colors active:bg-muted/50";
               const label = (
                 <>
                   <span className="flex items-baseline gap-3">
@@ -161,18 +255,31 @@ export function Navbar() {
                       {l.label}
                     </span>
                   </span>
-                  <FiArrowUpRight
-                    className="size-5 shrink-0 text-muted-foreground/40 transition-colors group-active:text-primary"
-                    aria-hidden
-                  />
+                  {megaId ? (
+                    <FiChevronDown
+                      className="size-5 shrink-0 text-muted-foreground/40"
+                      aria-hidden
+                    />
+                  ) : (
+                    <FiArrowUpRight
+                      className="size-5 shrink-0 text-muted-foreground/40 transition-colors group-active:text-primary"
+                      aria-hidden
+                    />
+                  )}
                 </>
               );
 
               return (
                 <li key={l.label}>
-                  <Link to={l.to} onClick={() => setOpen(false)} className={className}>
-                    {label}
-                  </Link>
+                  {megaId ? (
+                    <button type="button" onClick={() => toggleMega(megaId)} className={rowClass}>
+                      {label}
+                    </button>
+                  ) : (
+                    <Link to={l.to} onClick={() => setOpen(false)} className={rowClass}>
+                      {label}
+                    </Link>
+                  )}
                 </li>
               );
             })}
@@ -185,6 +292,17 @@ export function Navbar() {
           </Button>
         </nav>
       </div>
+
+      {NAV_MEGA_MENUS.map((config) => (
+        <NavMegaMenu
+          key={config.id}
+          config={config}
+          open={megaOpen === config.id}
+          onClose={closeMega}
+          onKeepOpen={() => openMega(config.id)}
+          variant="float"
+        />
+      ))}
     </header>
   );
 }

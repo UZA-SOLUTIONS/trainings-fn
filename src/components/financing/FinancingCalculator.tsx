@@ -9,7 +9,6 @@ import {
 } from "@/utils/financing";
 import {
   FALLBACK_INSTITUTION,
-  PROGRAMS,
   depositPercentFor,
   institutionForProgram,
   useInstitutions,
@@ -42,12 +41,6 @@ export const PAY_OPTION_META: Record<
 
 const PAY_OPTIONS: PayOption[] = ["cash", "split", "financed"];
 
-const PROGRAM_SHORT: Record<string, string> = {
-  tunga_taxi: "Tunga Taxi",
-  fleet_partners: "Fleet",
-  individual_buyers: "Individual",
-};
-
 type FinancingCalculatorProps = {
   /** Controlled payment option (e.g. from offer buttons). */
   option?: PayOption;
@@ -67,7 +60,7 @@ export function FinancingCalculator({
   );
   const payOption = controlledOption ?? internalOption;
 
-  const [program, setProgram] = useState("tunga_taxi");
+  const program = "tunga_taxi";
   const [vehicleCost, setVehicleCost] = useState(16_000_000);
   const [depositPercent, setDepositPercent] = useState(10);
   const [termYears, setTermYears] = useState(3);
@@ -147,7 +140,7 @@ export function FinancingCalculator({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden rounded-2xl border-white/10 p-0 text-ink-foreground",
+        "relative flex min-h-[min(92vh,52rem)] w-full items-stretch overflow-hidden rounded-none border-x-0 border-y border-white/10 p-0 text-ink-foreground",
         className,
       )}
     >
@@ -157,10 +150,10 @@ export function FinancingCalculator({
         aria-hidden
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/84 md:bg-[oklch(0.16_0.04_158)]/80" />
+      <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/78 md:bg-[oklch(0.16_0.04_158)]/72" />
 
-      <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1.05fr_0.95fr]">
-        <div className="order-2 space-y-4 border-white/10 p-4 sm:space-y-6 sm:p-6 md:order-1 md:border-r md:p-8 lg:p-10">
+      <div className="relative z-10 container-page flex w-full flex-1 flex-col justify-center py-12 sm:py-16 md:grid md:min-h-[min(92vh,52rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10 md:py-20 lg:gap-14 lg:py-24">
+        <div className="order-2 space-y-5 border-white/10 sm:space-y-7 md:order-1 md:border-r md:pr-8 lg:pr-12">
           <div>
             <p className="text-eyebrow opacity-70">Payment</p>
             <div
@@ -188,22 +181,6 @@ export function FinancingCalculator({
                   </button>
                 );
               })}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-eyebrow opacity-70">Buyer</p>
-            <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
-              {PROGRAMS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setProgram(p.value)}
-                  className={chip(program === p.value)}
-                >
-                  {PROGRAM_SHORT[p.value] ?? p.label}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -278,7 +255,7 @@ export function FinancingCalculator({
           )}
         </div>
 
-        <div className="order-1 flex min-h-0 flex-col justify-between gap-4 border-b border-white/10 p-4 sm:gap-6 sm:p-6 md:order-2 md:min-h-[24rem] md:border-b-0 md:p-8 lg:p-10">
+        <div className="order-1 flex min-h-0 flex-col justify-center gap-5 border-b border-white/10 pb-8 sm:gap-7 sm:pb-10 md:order-2 md:min-h-[28rem] md:border-b-0 md:pb-0">
           {payOption === "financed" && (
             <>
               <div>

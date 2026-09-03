@@ -11,28 +11,17 @@ export function BuyOptionsGrid({
 }) {
   return (
     <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:snap-none sm:gap-5 sm:overflow-visible sm:pb-0 lg:grid-cols-3 lg:items-stretch [&::-webkit-scrollbar]:hidden">
-      {BUY_OPTIONS.map((o, i) => (
+      {BUY_OPTIONS.map((o) => (
         <article
           key={o.tag}
           className={cn(
-            "relative flex w-[85vw] max-w-[21rem] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-b-0 p-5 sm:w-auto sm:max-w-none sm:shrink sm:p-7 md:p-8",
+            "relative flex w-[85vw] max-w-[21rem] shrink-0 snap-center flex-col overflow-hidden border p-5 sm:w-auto sm:max-w-none sm:shrink sm:p-7 md:p-8",
             o.highlight
               ? "border-primary bg-primary text-primary-foreground lg:-translate-y-2"
               : "border-border/70 bg-background",
           )}
         >
-          <span
-            className={cn(
-              "w-fit rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]",
-              o.highlight
-                ? "bg-white/15 text-primary-foreground"
-                : "bg-muted text-muted-foreground",
-            )}
-          >
-            Option {String(i + 1).padStart(2, "0")} · {o.tag}
-          </span>
-
-          <div className="mt-6 sm:mt-8">
+          <div>
             <p
               className={cn(
                 "font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl",
@@ -43,7 +32,7 @@ export function BuyOptionsGrid({
             </p>
             <p
               className={cn(
-                "mt-1 text-sm",
+                "mt-1 text-sm font-medium uppercase tracking-[0.12em]",
                 o.highlight ? "text-primary-foreground/70" : "text-muted-foreground",
               )}
             >
@@ -51,35 +40,30 @@ export function BuyOptionsGrid({
             </p>
           </div>
 
-          <h3 className="mt-5 font-display text-lg font-semibold leading-snug tracking-tight sm:mt-6 sm:text-xl">
+          <h3 className="mt-6 text-xl font-bold leading-snug tracking-tight sm:mt-8 sm:text-2xl">
             {o.title}
           </h3>
           <p
             className={cn(
-              "mt-3 text-sm leading-relaxed",
+              "mt-3 text-sm leading-relaxed sm:text-base",
               o.highlight ? "text-primary-foreground/80" : "text-muted-foreground",
             )}
           >
             {o.body}
           </p>
 
-          <ul className="mt-6 space-y-3 border-t border-current/10 pt-5 sm:mt-8 sm:pt-6">
-            {o.points.map((pt) => (
-              <li key={pt} className="flex items-start gap-3 text-sm">
-                <span
+          <ul className="mt-5 space-y-2.5 sm:mt-6">
+            {o.points.map((point) => (
+              <li key={point} className="flex items-start gap-2.5 text-sm leading-snug">
+                <FiCheck
                   className={cn(
-                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                    o.highlight ? "bg-volt/20 text-volt" : "bg-primary/10 text-primary",
+                    "mt-0.5 size-4 shrink-0",
+                    o.highlight ? "text-volt" : "text-primary",
                   )}
-                >
-                  <FiCheck size={12} aria-hidden />
-                </span>
-                <span
-                  className={
-                    o.highlight ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }
-                >
-                  {pt}
+                  aria-hidden
+                />
+                <span className={o.highlight ? "text-primary-foreground/90" : "text-foreground/90"}>
+                  {point}
                 </span>
               </li>
             ))}
@@ -101,14 +85,6 @@ export function BuyOptionsGrid({
               </Button>
             </div>
           )}
-
-          <span
-            className={cn(
-              "pointer-events-none absolute inset-x-0 bottom-0 h-1.5",
-              o.highlight ? "bg-volt" : "bg-volt",
-            )}
-            aria-hidden
-          />
         </article>
       ))}
     </div>

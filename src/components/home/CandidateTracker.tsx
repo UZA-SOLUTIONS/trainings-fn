@@ -499,12 +499,9 @@ export function CandidateTrackSearch({
         isPage && "max-w-2xl",
       )}
     >
-      <p className={cn("text-eyebrow", onDark ? "text-volt" : "text-muted-foreground")}>
-        Track your application
-      </p>
       <p
         className={cn(
-          "mt-1 font-display font-semibold leading-snug tracking-tight",
+          "font-display font-semibold leading-snug tracking-tight",
           isHero && "text-[0.95rem] text-ink-foreground sm:text-base",
           isPage && "text-[1.75rem] text-ink-foreground sm:text-4xl md:text-[2.75rem]",
           !onDark && "text-[1.65rem] sm:text-3xl md:text-4xl",

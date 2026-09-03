@@ -6,9 +6,6 @@ import { Footer } from "@/components/layout/Footer";
 const OVERLAY_PATHS = new Set([
   "/",
   "/track",
-  "/programme",
-  "/financing",
-  "/training",
   "/requirements",
 ]);
 

@@ -29,10 +29,10 @@ export function StepsJourney({ steps }: { steps: JourneyStep[] }) {
             </p>
             {s.n === "02" && (
               <Link
-                to="/training"
+                to="/apply"
                 className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
-                See cohorts & modules
+                Apply for training
                 <FiArrowRight aria-hidden />
               </Link>
             )}

@@ -11,16 +11,15 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 const PROGRAMME = [
-  { to: "/programme", label: "How it works" },
-  { to: "/training", label: "Cohorts & modules" },
-  { to: "/financing", label: "Financing" },
-  { to: "/financing#offers", label: "Buy options" },
-  { to: "/programme#partners", label: "Partners" },
+  { to: "/#path", label: "How it works" },
+  { to: "/apply", label: "Apply for training" },
+  { to: "/#financing", label: "Financing" },
+  { to: "/#offers", label: "Buy options" },
+  { to: "/#partners", label: "Partners" },
 ];
 
 const DRIVERS = [
   { to: "/apply", label: "Apply for training" },
-  { to: "/training", label: "Open cohorts" },
   { to: "/track", label: "Track your ID" },
   { to: "/requirements", label: "Requirements" },
   { to: "/auth", label: "Staff login" },

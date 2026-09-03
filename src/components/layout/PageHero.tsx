@@ -7,25 +7,26 @@ type Cta =
   | { label: string; href: string };
 
 export function PageHero({
-  eyebrow,
   title,
   description,
   primary,
   secondary,
   compact,
+  className,
 }: {
-  eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   primary?: Cta;
   secondary?: Cta;
   compact?: boolean;
+  className?: string;
 }) {
   return (
     <section
       className={cn(
-        "relative overflow-hidden border-b border-border/50 text-ink-foreground",
+        "relative flex overflow-hidden border-b border-border/50 text-ink-foreground",
         compact ? "min-h-[min(42vh,20rem)]" : "min-h-[min(48vh,24rem)]",
+        className,
       )}
     >
       <img
@@ -46,19 +47,15 @@ export function PageHero({
         }}
       />
 
-      <div
-        className={cn(
-          "relative container-page flex flex-col justify-center",
-          compact ? "py-14 sm:py-16" : "py-16 sm:py-20 md:py-24",
-        )}
-      >
-        <p className="text-eyebrow text-volt">{eyebrow}</p>
-        <h1 className="mt-2 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+      <div className="relative container-page flex w-full flex-1 flex-col items-start justify-center py-16 sm:py-20 md:py-24">
+        <h1 className="max-w-2xl text-left font-display text-3xl font-bold tracking-tight sm:max-w-3xl sm:text-4xl md:text-5xl">
           {title}
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-foreground/75 sm:text-lg">
-          {description}
-        </p>
+        {description && (
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-foreground/75 sm:text-lg">
+            {description}
+          </p>
+        )}
         {(primary || secondary) && (
           <div className="mt-8 flex flex-wrap gap-3">
             {primary && (

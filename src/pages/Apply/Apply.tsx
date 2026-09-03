@@ -332,8 +332,7 @@ export default function Apply() {
 
         <div className="relative z-10 container-page flex justify-center">
           <div className="w-full max-w-lg rounded-3xl border border-white/12 bg-white/[0.06] p-8 backdrop-blur-sm md:p-10">
-            <p className="text-eyebrow text-volt">Application received</p>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
+            <h1 className="font-display text-3xl font-bold tracking-tight">
               {enrolled ? "You have a seat." : "You're on the waiting list."}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-ink-foreground/70">
@@ -455,8 +454,7 @@ export default function Apply() {
                 />
                 <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/78" />
                 <div className="relative px-5 py-7 text-ink-foreground sm:px-6 sm:py-8 md:px-8 md:py-10">
-                  <p className="text-eyebrow text-volt">Call for applications</p>
-                  <h2 className="mt-2 max-w-lg font-display text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
+                  <h2 className="max-w-lg font-display text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
                     Apply for Tunga Taxi training
                   </h2>
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-foreground/75">

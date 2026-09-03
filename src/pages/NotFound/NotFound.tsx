@@ -16,7 +16,7 @@ export default function NotFound() {
           <Link to="/">Home</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to="/programme">Programme</Link>
+          <Link to="/#path">Programme</Link>
         </Button>
         <Button asChild variant="outline">
           <Link to="/track">Track ID</Link>

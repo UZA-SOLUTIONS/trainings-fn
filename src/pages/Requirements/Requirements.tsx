@@ -12,11 +12,10 @@ export default function Requirements() {
   return (
     <main className="bg-muted/30">
       <PageHero
-        eyebrow="Bank documents"
         title="What the bank needs from you"
         description="Bring these to your instructor or upload them against your permanent candidate ID. Items marked as conditional only apply to some drivers."
         primary={{ label: "Start your application", to: "/apply" }}
-        secondary={{ label: "See financing", to: "/financing" }}
+        secondary={{ label: "See financing", to: "/#financing" }}
         compact
       />
 
