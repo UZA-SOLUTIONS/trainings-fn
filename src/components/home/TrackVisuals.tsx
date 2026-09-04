@@ -64,7 +64,7 @@ function AnalysisKpi({
   title: string;
   value: string;
   unit?: string;
-  insight: string;
+  insight?: string;
   tone?: Tone;
   segments: { value: number; color: string; label: string }[];
   rows: { label: string; value: string; accent?: string }[];
@@ -84,7 +84,9 @@ function AnalysisKpi({
               </span>
             )}
           </div>
-          <p className="mt-3 text-sm leading-snug text-muted-foreground sm:text-base">{insight}</p>
+          {insight ? (
+            <p className="mt-3 text-sm leading-snug text-muted-foreground sm:text-base">{insight}</p>
+          ) : null}
         </div>
         <DonutChart size={84} strokeWidth={10} centerLabel="" segments={segments} />
       </div>
@@ -131,7 +133,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
   const bankPays = financing.bank_ninety_percent_rwf;
   const depositPct = financing.deposit_pct;
   const depositGap = financing.deposit_gap_rwf;
-  const depositSurplus = financing.deposit_surplus_rwf;
   // Alias for existing deposit-readiness KPI
   const depositRequired = depositTenPercent;
   const depositReady = depositOffered;
@@ -196,7 +197,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           insight={
             garage.live
               ? `${garage.health.status} · SOH ${garage.health.battery_soh_percent}% · ${garage.health.fault_codes_count} DTCs`
-              : "Awaiting full garage diagnosis · health numbers stay at 0"
+              : undefined
           }
           segments={[
             { value: Math.max(garageScore, 1), color: "var(--volt)", label: "Score" },
@@ -268,13 +269,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           }
           unit={!depositRequired ? undefined : remainingToTen > 0 ? "RWF" : "%"}
           tone={depositTone}
-          insight={
-            !depositRequired
-              ? "Deposit requirement not set yet."
-              : remainingToTen > 0
-                ? `${formatRwf(remainingToTen, { compact: true })} still left to pay to reach 10% of the car price (${formatRwf(depositTenPercent, { compact: true })}).`
-                : `10% deposit met · surplus ${formatRwf(depositSurplus, { compact: true })}.`
-          }
           segments={[
             {
               value: Math.min(depositReady, depositRequired || depositReady || 1),
@@ -311,11 +305,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           value={bankPays ? formatRwf(bankPays, { compact: true }).replace(" RWF", "") : "—"}
           unit={bankPays ? "RWF" : undefined}
           tone={bankPays ? "good" : "neutral"}
-          insight={
-            bankPays
-              ? `Bank pays vehicle price minus candidate contribution (${formatRwf(vehiclePrice, { compact: true })} − ${formatRwf(depositOffered, { compact: true })}).`
-              : "Vehicle price not set yet — bank share cannot be calculated."
-          }
           segments={[
             {
               value: depositOffered || 1,
@@ -437,9 +426,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             <p className={cn(VALUE_LG, "mt-2 text-primary")}>
               {formatRwf(depositOffered, { compact: true })}
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              What the candidate put toward the vehicle
-            </p>
           </div>
           <div
             className={cn(
@@ -461,12 +447,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             >
               {formatRwf(remainingToTen, { compact: true })}
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Still needed to complete the 10% deposit
-              {depositTenPercent > 0
-                ? ` (${formatRwf(depositTenPercent, { compact: true })} total)`
-                : ""}
-            </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-5">
             <p className="font-display text-base font-light text-muted-foreground">
@@ -474,9 +454,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             </p>
             <p className={cn(VALUE_LG, "mt-2")}>
               {vehiclePrice > 0 ? formatRwf(bankPays, { compact: true }) : "—"}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Vehicle price minus candidate contribution
             </p>
           </div>
         </div>

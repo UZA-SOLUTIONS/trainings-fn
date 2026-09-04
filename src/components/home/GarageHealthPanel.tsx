@@ -157,9 +157,11 @@ export function GarageHealthPanel({
             EV of choice: {model || "Not selected yet"}
             {vehicle.plate ? ` · ${vehicle.plate}` : ""}
           </p>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {garage.message}
-          </p>
+          {garage.message ? (
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {garage.message}
+            </p>
+          ) : null}
         </div>
         <span className="rounded-full bg-volt/15 px-3 py-1 font-display text-xs font-light uppercase tracking-wide text-foreground">
           {garage.live ? "Live from garage" : "Awaiting garage"}
@@ -336,12 +338,7 @@ export function GarageHealthPanel({
           <p className={cn(VALUE, "text-xl sm:text-2xl")}>Recent garage updates</p>
           <span className={cn(VALUE, "text-xl")}>{updates.length}</span>
         </div>
-        {updates.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            No garage updates yet. Full diagnosis fields stay at 0 until the garage sends the
-            first sync.
-          </p>
-        ) : (
+        {updates.length === 0 ? null : (
           <ul className="mt-4 space-y-2">
             {updates.map((u) => (
               <li

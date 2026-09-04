@@ -129,8 +129,7 @@ export function fallbackGarage(track: CandidateTrackView): GaragePreview {
   return {
     status: "awaiting_garage",
     live: false,
-    message:
-      "Garage should post a full diagnosis: battery SOH, motor, brakes, tyres, faults, and service data. Numbers stay at 0 until the first sync.",
+    message: "",
     uza_id: track.candidate_code,
     vehicle: {
       plate: "",

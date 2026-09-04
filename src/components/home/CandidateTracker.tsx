@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FiSearch } from "react-icons/fi";
+import { FiDownload, FiSearch } from "react-icons/fi";
 import {
   trackLookup,
   type CandidateTrackView,
@@ -14,7 +14,9 @@ import { GarageHealthPanel } from "@/components/home/GarageHealthPanel";
 import { resolveTrackGarage, resolveTrackWallet, resolveTrackFinancing } from "@/components/home/trackFallbacks";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
+import { downloadTrackReportPdf } from "@/utils/downloadTrackReport";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STATUS_LABELS: Record<string, string> = {
   enrolled: "Enrolled",
@@ -84,6 +86,23 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
             <p className={cn(valueMd, "mt-2 text-primary")}>{track.candidate_code}</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 font-display font-light"
+              onClick={() => {
+                try {
+                  downloadTrackReportPdf(track);
+                  toast.success("Track report downloaded");
+                } catch {
+                  toast.error("Could not create the PDF");
+                }
+              }}
+            >
+              <FiDownload size={16} aria-hidden />
+              Download PDF
+            </Button>
             <Badge
               variant={isCertified ? "default" : "secondary"}
               className={cn(
@@ -257,11 +276,6 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
             <p className="mt-2 text-base text-muted-foreground">
               of 10% deposit · bank pays price − contribution
             </p>
-            {remainingToTen > 0 && (
-              <p className="mt-3 font-display text-lg font-light tracking-tight text-destructive sm:text-xl">
-                Left to pay for 10%: {formatRwf(remainingToTen, { compact: true })}
-              </p>
-            )}
           </div>
           <div className="mt-8">
             <HistogramChart
