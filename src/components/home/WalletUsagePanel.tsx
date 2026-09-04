@@ -119,8 +119,13 @@ function MoneyAmount({
       : formatRwf(amount, { compact });
 
   return (
-    <span className={cn("inline-flex max-w-full flex-nowrap items-center gap-1.5 whitespace-nowrap", className)}>
-      <span className={cn(VALUE, "whitespace-nowrap")}>
+    <span
+      className={cn(
+        "inline-flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap align-middle",
+        className,
+      )}
+    >
+      <span className={cn(VALUE, "inline whitespace-nowrap leading-none")}>
         {visible ? `${prefix}${display}` : HIDDEN}
       </span>
       <button
@@ -139,6 +144,31 @@ function MoneyAmount({
         {visible ? <FiEyeOff size={16} aria-hidden /> : <FiEye size={16} aria-hidden />}
       </button>
     </span>
+  );
+}
+
+function BalanceRow({
+  label,
+  amount,
+  compact = false,
+  amountClassName,
+}: {
+  label: string;
+  amount: number;
+  compact?: boolean;
+  amountClassName?: string;
+}) {
+  return (
+    <div className="flex flex-nowrap items-center justify-between gap-3 whitespace-nowrap">
+      <span className="min-w-0 shrink truncate font-display text-sm font-light text-muted-foreground sm:text-base">
+        {label}
+      </span>
+      <MoneyAmount
+        amount={amount}
+        compact={compact}
+        className={cn("shrink-0", amountClassName)}
+      />
+    </div>
   );
 }
 
@@ -180,34 +210,30 @@ export function WalletUsagePanel({
         </p>
       </div>
 
-      <div className="mt-8 rounded-xl border border-border/50 bg-muted/25 px-4 py-5 sm:px-6">
-        <MoneyAmount
-          amount={wallet.balances.available_rwf}
-          className="flex w-fit items-center text-4xl sm:text-5xl [&_span]:text-4xl sm:[&_span]:text-5xl"
-          iconClassName="p-1.5"
-        />
-        <dl className="mt-5 grid gap-4 border-t border-border/50 pt-4 sm:grid-cols-2">
-          <div>
-            <dt className="font-display text-sm font-light text-muted-foreground">Savings locked</dt>
-            <dd className="mt-1">
-              <MoneyAmount
-                amount={wallet.balances.savings_locked_rwf}
-                compact
-                className="text-xl sm:text-2xl [&_span]:text-xl sm:[&_span]:text-2xl"
-              />
-            </dd>
-          </div>
-          <div>
-            <dt className="font-display text-sm font-light text-muted-foreground">Commission owed</dt>
-            <dd className="mt-1">
-              <MoneyAmount
-                amount={wallet.balances.commission_owed_rwf}
-                compact
-                className="text-xl sm:text-2xl [&_span]:text-xl sm:[&_span]:text-2xl"
-              />
-            </dd>
-          </div>
-        </dl>
+      <div className="mt-8 space-y-0 rounded-xl border border-border/50 bg-muted/25 px-4 py-2 sm:px-6">
+        <div className="py-3">
+          <BalanceRow
+            label="Available"
+            amount={wallet.balances.available_rwf}
+            amountClassName="text-2xl sm:text-3xl [&_span]:text-2xl sm:[&_span]:text-3xl"
+          />
+        </div>
+        <div className="border-t border-border/50 py-3">
+          <BalanceRow
+            label="Savings locked"
+            amount={wallet.balances.savings_locked_rwf}
+            compact
+            amountClassName="text-lg sm:text-xl [&_span]:text-lg sm:[&_span]:text-xl"
+          />
+        </div>
+        <div className="border-t border-border/50 py-3">
+          <BalanceRow
+            label="Commission owed"
+            amount={wallet.balances.commission_owed_rwf}
+            compact
+            amountClassName="text-lg sm:text-xl [&_span]:text-lg sm:[&_span]:text-xl"
+          />
+        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-border/50 px-4 py-4 sm:px-5">
