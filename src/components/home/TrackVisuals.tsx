@@ -195,8 +195,8 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           }
           insight={
             garage.live
-              ? `${garage.health.status} · battery ${garage.health.battery_percent}%`
-              : "Awaiting garage sync · health numbers stay at 0"
+              ? `${garage.health.status} · SOH ${garage.health.battery_soh_percent}% · ${garage.health.fault_codes_count} DTCs`
+              : "Awaiting full garage diagnosis · health numbers stay at 0"
           }
           segments={[
             { value: Math.max(garageScore, 1), color: "var(--volt)", label: "Score" },
@@ -207,9 +207,9 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             },
           ]}
           rows={[
-            { label: "Battery", value: `${garage.health.battery_percent}%` },
-            { label: "Range", value: `${garage.health.range_km} km` },
-            { label: "Updates", value: String(garage.updates.length) },
+            { label: "Battery SOH", value: `${garage.health.battery_soh_percent}%` },
+            { label: "Motor", value: `${garage.health.motor_health_percent}%` },
+            { label: "Faults", value: String(garage.health.fault_codes_count ?? 0) },
           ]}
         />
         <AnalysisKpi

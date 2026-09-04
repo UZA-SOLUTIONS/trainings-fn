@@ -119,8 +119,8 @@ function MoneyAmount({
       : formatRwf(amount, { compact });
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <span className={VALUE}>
+    <span className={cn("inline-flex max-w-full flex-nowrap items-center gap-1.5 whitespace-nowrap", className)}>
+      <span className={cn(VALUE, "whitespace-nowrap")}>
         {visible ? `${prefix}${display}` : HIDDEN}
       </span>
       <button
@@ -183,7 +183,7 @@ export function WalletUsagePanel({
       <div className="mt-8 rounded-xl border border-border/50 bg-muted/25 px-4 py-5 sm:px-6">
         <MoneyAmount
           amount={wallet.balances.available_rwf}
-          className="text-4xl sm:text-5xl [&_span]:text-4xl sm:[&_span]:text-5xl"
+          className="flex w-fit items-center text-4xl sm:text-5xl [&_span]:text-4xl sm:[&_span]:text-5xl"
           iconClassName="p-1.5"
         />
         <dl className="mt-5 grid gap-4 border-t border-border/50 pt-4 sm:grid-cols-2">

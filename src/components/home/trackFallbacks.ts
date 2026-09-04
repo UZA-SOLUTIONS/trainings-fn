@@ -1,6 +1,40 @@
 import type { CandidateTrackView } from "@/services/candidateService";
 import type { WalletPreview } from "@/components/home/WalletUsagePanel";
-import type { GaragePreview } from "@/components/home/GarageHealthPanel";
+import type { GarageHealth, GaragePreview } from "@/components/home/GarageHealthPanel";
+
+export function emptyGarageHealth(): GarageHealth {
+  return {
+    overall_score: 0,
+    status: "unknown",
+    battery_percent: 0,
+    battery_soh_percent: 0,
+    battery_temp_c: 0,
+    battery_cell_diff_mv: 0,
+    charge_cycles: 0,
+    charging_status: "unknown",
+    range_km: 0,
+    motor_health_percent: 0,
+    inverter_health_percent: 0,
+    coolant_temp_c: 0,
+    tyre_health_percent: 0,
+    tyre_pressure_fl_bar: 0,
+    tyre_pressure_fr_bar: 0,
+    tyre_pressure_rl_bar: 0,
+    tyre_pressure_rr_bar: 0,
+    brake_health_percent: 0,
+    brake_pad_percent: 0,
+    suspension_health_percent: 0,
+    aux_12v_volt: 0,
+    fault_codes_count: 0,
+    active_warnings: [],
+    software_version: "",
+    odometer_km: 0,
+    last_service_at: null,
+    next_service_due_km: 0,
+    last_diagnosis_at: null,
+    inspection_passed: null,
+  };
+}
 
 /** Wallet block for track when API has not attached one yet (all app numbers / balances = 0). */
 export function fallbackWallet(track: CandidateTrackView): WalletPreview {
@@ -96,7 +130,7 @@ export function fallbackGarage(track: CandidateTrackView): GaragePreview {
     status: "awaiting_garage",
     live: false,
     message:
-      "Garage link is ready. Car health and updates will appear here once the garage posts telemetry.",
+      "Garage should post a full diagnosis: battery SOH, motor, brakes, tyres, faults, and service data. Numbers stay at 0 until the first sync.",
     uza_id: track.candidate_code,
     vehicle: {
       plate: "",
@@ -105,16 +139,7 @@ export function fallbackGarage(track: CandidateTrackView): GaragePreview {
       garage_id: "",
       garage_name: "",
     },
-    health: {
-      overall_score: 0,
-      battery_percent: 0,
-      range_km: 0,
-      odometer_km: 0,
-      tyre_health_percent: 0,
-      last_service_at: null,
-      next_service_due_km: 0,
-      status: "unknown",
-    },
+    health: emptyGarageHealth(),
     updates: [],
     last_synced_at: null,
     endpoints: [
@@ -122,7 +147,7 @@ export function fallbackGarage(track: CandidateTrackView): GaragePreview {
         method: "POST",
         path: "/api/garage/:uzaId/updates",
         audience: ["garage", "staff"],
-        purpose: "Ingest car health metrics and service updates from the garage",
+        purpose: "Ingest full EV diagnosis from the garage",
       },
     ],
   };
@@ -153,7 +178,16 @@ export function resolveTrackWallet(track: CandidateTrackView): WalletPreview {
 }
 
 export function resolveTrackGarage(track: CandidateTrackView): GaragePreview {
-  return track.garage ?? fallbackGarage(track);
+  const base = fallbackGarage(track);
+  const g = track.garage;
+  if (!g) return base;
+  return {
+    ...base,
+    ...g,
+    vehicle: { ...base.vehicle, ...g.vehicle },
+    health: { ...base.health, ...g.health, active_warnings: g.health?.active_warnings ?? [] },
+    updates: Array.isArray(g.updates) ? g.updates : [],
+  };
 }
 
 /** Normalize financing numbers for track UI (never blank when DB has values). */
