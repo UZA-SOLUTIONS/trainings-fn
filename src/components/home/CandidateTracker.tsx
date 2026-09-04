@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { TrackVisualDashboard } from "@/components/home/TrackVisuals";
 import { WalletUsagePanel } from "@/components/home/WalletUsagePanel";
 import { GarageHealthPanel } from "@/components/home/GarageHealthPanel";
-import { resolveTrackGarage, resolveTrackWallet } from "@/components/home/trackFallbacks";
+import { resolveTrackGarage, resolveTrackWallet, resolveTrackFinancing } from "@/components/home/trackFallbacks";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ export function friendlyTrackError(err: unknown): string {
 export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
   const wallet = resolveTrackWallet(track);
   const garage = resolveTrackGarage(track);
+  const financing = resolveTrackFinancing(track);
 
   const trainingPct =
     track.training.status === "completed"
@@ -55,12 +56,12 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
           : track.training.attendance_percentage ??
             (track.training.status === "in_progress" ? 35 : 0);
 
-  const depositRequired = track.financing.deposit_required_rwf ?? 0;
-  const depositReady = track.financing.deposit_available_rwf ?? 0;
-  const depositPct =
-    depositRequired > 0 ? Math.min(100, Math.round((depositReady / depositRequired) * 100)) : null;
-  const vehiclePrice = track.financing.target_vehicle_price_rwf || 0;
-  const bankFinance = Math.max(0, vehiclePrice - depositReady);
+  const depositRequired = financing.deposit_ten_percent_rwf ?? 0;
+  const depositReady = financing.deposit_offered_rwf ?? 0;
+  const depositPct = depositRequired > 0 ? financing.deposit_pct : null;
+  const vehiclePrice = financing.target_vehicle_price_rwf || 0;
+  const bankFinance = financing.bank_ninety_percent_rwf;
+  const remainingToTen = financing.remaining_to_ten_percent_rwf;
 
   const docsProvided = track.documents.filter((d) => d.complete);
   const docsMissing = track.documents.filter((d) => !d.complete && d.required);
@@ -143,20 +144,20 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
                 EV of choice
               </dt>
               <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {track.financing.target_vehicle_name?.trim() || "Not selected yet"}
+                {financing.target_vehicle_name?.trim() || "Not selected yet"}
               </dd>
             </div>
           </dl>
         )}
 
-        {!track.cohort && track.financing.target_vehicle_name && (
+        {!track.cohort && financing.target_vehicle_name && (
           <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 sm:text-lg">
             <div>
               <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 EV of choice
               </dt>
               <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {track.financing.target_vehicle_name}
+                {financing.target_vehicle_name}
               </dd>
             </div>
           </dl>
@@ -174,7 +175,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
 
       <GarageHealthPanel
         garage={garage}
-        evOfChoice={track.financing.target_vehicle_name}
+        evOfChoice={financing.target_vehicle_name}
       />
 
       <TrackVisualDashboard track={track} />
@@ -254,8 +255,13 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               )}
             </p>
             <p className="mt-2 text-base text-muted-foreground">
-              deposit vs required · {track.financing.preferred_financing ?? "—"}
+              of 10% deposit · bank pays price − contribution
             </p>
+            {remainingToTen > 0 && (
+              <p className="mt-3 font-display text-lg font-light tracking-tight text-destructive sm:text-xl">
+                Left to pay for 10%: {formatRwf(remainingToTen, { compact: true })}
+              </p>
+            )}
           </div>
           <div className="mt-8">
             <HistogramChart
@@ -267,45 +273,63 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
                   color: "oklch(0.35 0.04 158)",
                 },
                 {
-                  label: "Ready",
+                  label: "Offered",
                   value: depositReady,
                   color: "var(--primary)",
                 },
                 {
-                  label: "Required",
-                  value: depositRequired,
-                  color: "var(--volt)",
+                  label: "To 10%",
+                  value: remainingToTen,
+                  color: "var(--destructive)",
                 },
                 {
                   label: "Bank",
                   value: bankFinance,
-                  color: "oklch(0.55 0.02 130)",
+                  color: "var(--volt)",
                 },
               ]}
               valueFormatter={(n) => formatRwf(n, { compact: true })}
             />
           </div>
           <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
-            {track.financing.target_vehicle_name && (
+            {financing.target_vehicle_name && (
               <div className="flex items-baseline justify-between gap-4 py-3">
                 <dt className={cn(nameText, "text-base text-muted-foreground")}>EV of choice</dt>
                 <dd className={cn(nameText, "max-w-[60%] text-right text-base sm:text-lg")}>
-                  {track.financing.target_vehicle_name}
+                  {financing.target_vehicle_name}
                 </dd>
               </div>
             )}
             <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>Vehicle price</dt>
               <dd className={valueMd}>
-                {track.financing.preferred_term_years != null
-                  ? `${track.financing.preferred_term_years} yrs`
-                  : "—"}
+                {vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—"}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>UZA Access top-up</dt>
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>Deposit offered</dt>
+              <dd className={valueMd}>{formatRwf(depositReady, { compact: true })}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>Remaining to 10%</dt>
+              <dd className={cn(valueMd, remainingToTen > 0 ? "text-destructive" : "text-primary")}>
+                {formatRwf(remainingToTen, { compact: true })}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>
+                Bank pays (price − contribution)
+              </dt>
               <dd className={valueMd}>
-                {track.financing.needs_uza_access_support ? "Requested" : "No"}
+                {vehiclePrice > 0 ? formatRwf(bankFinance, { compact: true }) : "—"}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
+              <dd className={valueMd}>
+                {financing.preferred_term_years != null
+                  ? `${financing.preferred_term_years} yrs`
+                  : "—"}
               </dd>
             </div>
           </dl>

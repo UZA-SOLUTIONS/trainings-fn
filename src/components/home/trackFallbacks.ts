@@ -155,3 +155,71 @@ export function resolveTrackWallet(track: CandidateTrackView): WalletPreview {
 export function resolveTrackGarage(track: CandidateTrackView): GaragePreview {
   return track.garage ?? fallbackGarage(track);
 }
+
+/** Normalize financing numbers for track UI (never blank when DB has values). */
+export function resolveTrackFinancing(track: CandidateTrackView) {
+  const f = track.financing ?? ({} as CandidateTrackView["financing"]);
+  const walletPrice = track.wallet?.financing?.selling_price_rwf ?? 0;
+  const walletName = track.wallet?.financing?.target_vehicle_name ?? null;
+  const walletDeposit = track.wallet?.financing?.driver_contribution_rwf ?? 0;
+
+  const DEFAULT_VEHICLE_PRICE_RWF = 22_500_000;
+  const name = (f.target_vehicle_name || walletName || "").trim() || null;
+  let vehiclePrice = Number(f.target_vehicle_price_rwf);
+  if (!Number.isFinite(vehiclePrice) || vehiclePrice <= 0) {
+    vehiclePrice = Number(walletPrice) > 0 ? Number(walletPrice) : 0;
+  }
+
+  let depositOffered = Number(f.deposit_available_rwf);
+  if (!Number.isFinite(depositOffered) || depositOffered < 0) {
+    depositOffered = Number(walletDeposit) > 0 ? Number(walletDeposit) : 0;
+  }
+
+  // If contribution exists but price is missing, still compute 10%/90% on the programme default.
+  if (vehiclePrice <= 0 && (name || depositOffered > 0)) {
+    vehiclePrice = DEFAULT_VEHICLE_PRICE_RWF;
+  }
+
+  // Programme split: 10% target deposit · bank finances the rest of the vehicle price
+  const depositTenPercent = vehiclePrice > 0 ? Math.round(vehiclePrice * 0.1) : 0;
+  // Bank pays = car price − candidate contribution (remaining after what they offered)
+  const bankPaysRemaining =
+    vehiclePrice > 0 ? Math.max(0, Math.round(vehiclePrice - depositOffered)) : 0;
+  const remainingToTenPercent = Math.max(0, depositTenPercent - depositOffered);
+  const depositPct =
+    depositTenPercent > 0
+      ? Math.min(100, Math.round((depositOffered / depositTenPercent) * 100))
+      : 0;
+
+  // Legacy fields used elsewhere (may use 10% or 15% from API)
+  let depositRequired = Number(f.deposit_required_rwf);
+  let depositPercent = Number(f.deposit_required_percent);
+  if ((!Number.isFinite(depositRequired) || depositRequired <= 0) && vehiclePrice > 0) {
+    depositRequired = depositTenPercent;
+    depositPercent = 0.1;
+  }
+  if (!Number.isFinite(depositPercent) || depositPercent <= 0) {
+    depositPercent = 0.1;
+  }
+
+  return {
+    ...f,
+    target_vehicle_name: name,
+    target_vehicle_price_rwf: vehiclePrice,
+    deposit_available_rwf: depositOffered,
+    deposit_required_rwf: depositRequired > 0 ? depositRequired : null,
+    deposit_required_percent: depositRequired > 0 ? depositPercent : null,
+    deposit_pct: depositPct,
+    /** Candidate contribution offered toward the vehicle. */
+    deposit_offered_rwf: depositOffered,
+    /** Full 10% deposit the structure requires. */
+    deposit_ten_percent_rwf: depositTenPercent,
+    /** Still needed to complete the 10% deposit. */
+    remaining_to_ten_percent_rwf: remainingToTenPercent,
+    /** Bank share — vehicle price minus candidate contribution. */
+    bank_ninety_percent_rwf: bankPaysRemaining,
+    bank_finance_rwf: bankPaysRemaining,
+    deposit_gap_rwf: remainingToTenPercent,
+    deposit_surplus_rwf: Math.max(0, depositOffered - depositTenPercent),
+  };
+}

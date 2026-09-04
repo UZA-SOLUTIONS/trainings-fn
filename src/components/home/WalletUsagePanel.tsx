@@ -112,7 +112,7 @@ function MoneyAmount({
   className?: string;
   iconClassName?: string;
 }) {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const display =
     amount == null
       ? "0 RWF"

@@ -221,6 +221,8 @@ export type CandidateTrackView = {
     deposit_available_rwf: number | null;
     deposit_required_rwf: number | null;
     deposit_required_percent: number | null;
+    /** Vehicle price minus candidate contribution (what bank finances). */
+    bank_finance_rwf?: number | null;
     needs_uza_access_support: boolean;
     offers_collateral: boolean;
     collateral_value_rwf: number;

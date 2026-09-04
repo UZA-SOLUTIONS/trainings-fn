@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
-import { resolveTrackGarage, resolveTrackWallet } from "@/components/home/trackFallbacks";
+import { resolveTrackGarage, resolveTrackWallet, resolveTrackFinancing } from "@/components/home/trackFallbacks";
 
 const MILESTONE_COLORS: Record<TrackMilestoneStatus, string> = {
   complete: "var(--primary)",
@@ -124,16 +124,21 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
   const docsNeeded = track.documents.filter((d) => !d.complete && d.required).length;
   const docsOptional = track.documents.filter((d) => !d.complete && !d.required).length;
 
-  const depositRequired = track.financing.deposit_required_rwf ?? 0;
-  const depositReady = track.financing.deposit_available_rwf ?? 0;
-  const depositPct =
-    depositRequired > 0 ? Math.min(100, Math.round((depositReady / depositRequired) * 100)) : 0;
-  const depositGap = Math.max(0, depositRequired - depositReady);
-  const depositSurplus = Math.max(0, depositReady - depositRequired);
+  const financing = resolveTrackFinancing(track);
+  const depositOffered = financing.deposit_offered_rwf;
+  const depositTenPercent = financing.deposit_ten_percent_rwf;
+  const remainingToTen = financing.remaining_to_ten_percent_rwf;
+  const bankPays = financing.bank_ninety_percent_rwf;
+  const depositPct = financing.deposit_pct;
+  const depositGap = financing.deposit_gap_rwf;
+  const depositSurplus = financing.deposit_surplus_rwf;
+  // Alias for existing deposit-readiness KPI
+  const depositRequired = depositTenPercent;
+  const depositReady = depositOffered;
 
   const trainingPct = trainingReadinessPercent(track.training);
-  const vehiclePrice = track.financing.target_vehicle_price_rwf || 0;
-  const bankFinance = Math.max(0, vehiclePrice - depositReady);
+  const vehiclePrice = financing.target_vehicle_price_rwf || 0;
+  const bankFinance = bankPays;
 
   const journeyTone: Tone =
     milestonePct >= 70 ? "good" : actionMilestones > 0 ? "bad" : milestonePct > 0 ? "warn" : "neutral";
@@ -143,8 +148,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
     !depositRequired ? "neutral" : depositPct >= 100 ? "good" : depositPct >= 50 ? "warn" : "bad";
   const trainingTone: Tone =
     trainingPct >= 80 ? "good" : trainingPct > 0 ? "warn" : "neutral";
-
-  const financeMax = Math.max(vehiclePrice, depositReady, depositRequired, bankFinance, 1);
 
   const wallet = resolveTrackWallet(track);
   const garage = resolveTrackGarage(track);
@@ -256,41 +259,91 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
 
         <AnalysisKpi
           title="Deposit readiness"
-          value={depositRequired ? `${depositPct}` : "—"}
-          unit={depositRequired ? "%" : undefined}
+          value={
+            !depositRequired
+              ? "—"
+              : remainingToTen > 0
+                ? formatRwf(remainingToTen, { compact: true }).replace(" RWF", "")
+                : `${depositPct}`
+          }
+          unit={!depositRequired ? undefined : remainingToTen > 0 ? "RWF" : "%"}
           tone={depositTone}
           insight={
             !depositRequired
               ? "Deposit requirement not set yet."
-              : depositPct >= 100
-                ? `Surplus ${formatRwf(depositSurplus, { compact: true })} above minimum.`
-                : `Gap of ${formatRwf(depositGap, { compact: true })} to reach the minimum.`
+              : remainingToTen > 0
+                ? `${formatRwf(remainingToTen, { compact: true })} still left to pay to reach 10% of the car price (${formatRwf(depositTenPercent, { compact: true })}).`
+                : `10% deposit met · surplus ${formatRwf(depositSurplus, { compact: true })}.`
           }
           segments={[
             {
               value: Math.min(depositReady, depositRequired || depositReady || 1),
               color: "var(--primary)",
-              label: "Ready",
+              label: "Offered",
             },
-            { value: depositGap || 0.0001, color: "var(--destructive)", label: "Gap" },
+            { value: depositGap || 0.0001, color: "var(--destructive)", label: "Left to pay" },
           ]}
           rows={[
             {
-              label: "Ready",
+              label: "Offered",
               value: depositReady ? formatRwf(depositReady, { compact: true }) : "—",
               accent: "var(--primary)",
             },
             {
-              label: "Required",
-              value: depositRequired ? formatRwf(depositRequired, { compact: true }) : "—",
+              label: "10% of car price",
+              value: depositRequired
+                ? formatRwf(depositRequired, { compact: true })
+                : "—",
             },
             {
-              label: depositPct >= 100 ? "Surplus" : "Gap",
+              label: remainingToTen > 0 ? "Left to pay" : "Fully covered",
               value:
-                depositPct >= 100
-                  ? formatRwf(depositSurplus, { compact: true })
-                  : formatRwf(depositGap, { compact: true }),
-              accent: depositPct >= 100 ? "var(--primary)" : "var(--destructive)",
+                remainingToTen > 0
+                  ? formatRwf(remainingToTen, { compact: true })
+                  : formatRwf(0, { compact: true }),
+              accent: remainingToTen > 0 ? "var(--destructive)" : "var(--primary)",
+            },
+          ]}
+        />
+
+        <AnalysisKpi
+          title="Bank financing"
+          value={bankPays ? formatRwf(bankPays, { compact: true }).replace(" RWF", "") : "—"}
+          unit={bankPays ? "RWF" : undefined}
+          tone={bankPays ? "good" : "neutral"}
+          insight={
+            bankPays
+              ? `Bank pays vehicle price minus candidate contribution (${formatRwf(vehiclePrice, { compact: true })} − ${formatRwf(depositOffered, { compact: true })}).`
+              : "Vehicle price not set yet — bank share cannot be calculated."
+          }
+          segments={[
+            {
+              value: depositOffered || 1,
+              color: "var(--primary)",
+              label: "Contribution",
+            },
+            {
+              value: bankPays || 1,
+              color: "var(--volt)",
+              label: "Bank pays",
+            },
+          ]}
+          rows={[
+            {
+              label: "Vehicle price",
+              value: vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—",
+            },
+            {
+              label: "Candidate offered",
+              value: depositOffered
+                ? formatRwf(depositOffered, { compact: true })
+                : "—",
+              accent: "var(--primary)",
+            },
+            {
+              label: "Bank pays (remaining)",
+              value: bankPays ? formatRwf(bankPays, { compact: true }) : "—",
+              accent: "var(--volt)",
             },
           ]}
         />
@@ -366,81 +419,143 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
       </Card>
 
       <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Financing breakdown
-          </p>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className={VALUE_LG}>
-                {vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—"}
-              </p>
-              <p className="mt-2 text-base text-muted-foreground">
-                target vehicle
-                {track.financing.target_vehicle_name
-                  ? ` · ${track.financing.target_vehicle_name}`
-                  : ""}{" "}
-                · deposit cover{" "}
-                <span
-                  className={cn(
-                    "font-display font-light",
-                    depositTone === "good" ? "text-primary" : "text-destructive",
-                  )}
-                >
-                  {depositRequired ? `${depositPct}%` : "—"}
-                </span>
-              </p>
-            </div>
-            <div className="text-right">
-              <p className={VALUE_MD}>
-                {vehiclePrice ? formatRwf(bankFinance, { compact: true }) : "—"}
-              </p>
-              <p className="text-sm text-muted-foreground">est. bank finance</p>
-            </div>
-          </div>
+        <p className={cn(NAME, "text-xl sm:text-2xl")}>Financing breakdown</p>
+        <p className="mt-2 text-base text-muted-foreground">
+          {financing.target_vehicle_name
+            ? `EV of choice · ${financing.target_vehicle_name}`
+            : "Vehicle financing"}
+          {vehiclePrice > 0 ? ` · ${formatRwf(vehiclePrice, { compact: true })}` : ""}
+          {" · "}
+          bank pays price − contribution
+        </p>
 
-          <div className="mt-8 w-full">
-            <HistogramChart
-              height={260}
-              bars={[
-                {
-                  label: "Vehicle",
-                  subLabel: "Target",
-                  value: vehiclePrice,
-                  color: "oklch(0.35 0.04 158)",
-                },
-                {
-                  label: "Ready",
-                  subLabel: "Deposit",
-                  value: depositReady,
-                  color: "var(--primary)",
-                },
-                {
-                  label: "Required",
-                  subLabel: "Deposit",
-                  value: depositRequired,
-                  color: "var(--volt)",
-                },
-                {
-                  label: "Bank",
-                  subLabel: "Est. finance",
-                  value: bankFinance,
-                  color: "oklch(0.55 0.02 130)",
-                },
-              ].map((b) => ({ ...b, value: Math.max(b.value, 0) }))}
-              valueFormatter={(n) =>
-                n >= financeMax * 0.01 || n === 0
-                  ? formatRwf(n, { compact: true })
-                  : formatRwf(n, { compact: true })
-              }
-            />
-          </div>
-
-          {track.financing.needs_uza_access_support && (
-            <p className="mt-5 rounded-xl border border-volt/30 bg-volt/10 px-4 py-3 text-sm leading-relaxed text-foreground sm:text-base">
-              UZA Access top-up requested — gap may be bridged after bank review.
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-primary/25 bg-primary/[0.06] px-4 py-5">
+            <p className="font-display text-base font-light text-muted-foreground">
+              Deposit offered
             </p>
-          )}
-        </Card>
+            <p className={cn(VALUE_LG, "mt-2 text-primary")}>
+              {formatRwf(depositOffered, { compact: true })}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              What the candidate put toward the vehicle
+            </p>
+          </div>
+          <div
+            className={cn(
+              "rounded-xl border px-4 py-5",
+              remainingToTen > 0
+                ? "border-destructive/25 bg-destructive/[0.06]"
+                : "border-primary/25 bg-primary/[0.06]",
+            )}
+          >
+            <p className="font-display text-base font-light text-muted-foreground">
+              Remaining to 10%
+            </p>
+            <p
+              className={cn(
+                VALUE_LG,
+                "mt-2",
+                remainingToTen > 0 ? "text-destructive" : "text-primary",
+              )}
+            >
+              {formatRwf(remainingToTen, { compact: true })}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Still needed to complete the 10% deposit
+              {depositTenPercent > 0
+                ? ` (${formatRwf(depositTenPercent, { compact: true })} total)`
+                : ""}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-5">
+            <p className="font-display text-base font-light text-muted-foreground">
+              Bank pays (remaining)
+            </p>
+            <p className={cn(VALUE_LG, "mt-2")}>
+              {vehiclePrice > 0 ? formatRwf(bankPays, { compact: true }) : "—"}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Vehicle price minus candidate contribution
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 w-full">
+          <HistogramChart
+            height={280}
+            minSlotWidth={110}
+            bars={[
+              {
+                label: "Vehicle",
+                subLabel: "Price",
+                value: vehiclePrice,
+                color: "oklch(0.35 0.04 158)",
+              },
+              {
+                label: "Offered",
+                subLabel: "Deposit",
+                value: depositOffered,
+                color: "var(--primary)",
+              },
+              {
+                label: "To 10%",
+                subLabel: "Remaining",
+                value: remainingToTen,
+                color: "var(--destructive)",
+              },
+              {
+                label: "Bank",
+                subLabel: "Remaining",
+                value: bankPays,
+                color: "var(--volt)",
+              },
+            ].map((b) => ({ ...b, value: Math.max(Number(b.value) || 0, 0) }))}
+            valueFormatter={(n) => formatRwf(n, { compact: true })}
+          />
+        </div>
+
+        <dl className="mt-6 grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <dt className="text-sm text-muted-foreground">Vehicle price</dt>
+            <dd className={cn(VALUE_MD, "mt-1")}>
+              {vehiclePrice > 0 ? formatRwf(vehiclePrice, { compact: true }) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">10% deposit target</dt>
+            <dd className={cn(VALUE_MD, "mt-1")}>
+              {depositTenPercent > 0 ? formatRwf(depositTenPercent, { compact: true }) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">Covered of 10%</dt>
+            <dd
+              className={cn(
+                VALUE_MD,
+                "mt-1",
+                depositPct >= 100 ? "text-primary" : "text-destructive",
+              )}
+            >
+              {depositTenPercent > 0 ? `${depositPct}%` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">Term</dt>
+            <dd className={cn(VALUE_MD, "mt-1")}>
+              {financing.preferred_term_years != null
+                ? `${financing.preferred_term_years} yrs`
+                : "—"}
+            </dd>
+          </div>
+        </dl>
+
+        {financing.needs_uza_access_support && (
+          <p className="mt-5 rounded-xl border border-volt/30 bg-volt/10 px-4 py-3 text-sm leading-relaxed text-foreground sm:text-base">
+            UZA Access top-up requested — can cover the remaining deposit gap to reach 10%.
+          </p>
+        )}
+      </Card>
 
     </div>
   );
