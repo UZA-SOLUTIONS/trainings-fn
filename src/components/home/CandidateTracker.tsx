@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { FiCheck, FiAlertCircle, FiClock, FiSearch } from "react-icons/fi";
+import { FiCheck, FiSearch } from "react-icons/fi";
 import {
   trackLookup,
   type CandidateTrackView,
-  type TrackMilestoneStatus,
 } from "@/services/candidateService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { TrackVisualDashboard } from "@/components/home/TrackVisuals";
+import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
 
@@ -37,42 +36,51 @@ export function friendlyTrackError(err: unknown): string {
   return message;
 }
 
-function milestoneIcon(status: TrackMilestoneStatus) {
-  if (status === "complete") return FiCheck;
-  if (status === "action_required" || status === "blocked") return FiAlertCircle;
-  return FiClock;
-}
-
-function milestoneTone(status: TrackMilestoneStatus) {
-  if (status === "complete") return "bg-primary/10 text-primary border-primary/20";
-  if (status === "in_progress" || status === "in_review")
-    return "bg-volt/15 text-foreground border-volt/30";
-  if (status === "action_required" || status === "blocked")
-    return "bg-destructive/10 text-destructive border-destructive/20";
-  return "bg-muted text-muted-foreground border-border";
-}
-
 export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
+  const trainingPct =
+    track.training.status === "completed"
+      ? 100
+      : track.training.status === "not_started"
+        ? 0
+        : track.training.attendance_percentage != null && track.training.exam_score != null
+          ? Math.round(
+              (track.training.attendance_percentage + track.training.exam_score) / 2,
+            )
+          : track.training.attendance_percentage ??
+            (track.training.status === "in_progress" ? 35 : 0);
+
+  const depositRequired = track.financing.deposit_required_rwf ?? 0;
+  const depositReady = track.financing.deposit_available_rwf ?? 0;
+  const depositPct =
+    depositRequired > 0 ? Math.min(100, Math.round((depositReady / depositRequired) * 100)) : null;
+  const vehiclePrice = track.financing.target_vehicle_price_rwf || 0;
+  const bankFinance = Math.max(0, vehiclePrice - depositReady);
+
+  const docsProvided = track.documents.filter((d) => d.complete);
+  const docsMissing = track.documents.filter((d) => !d.complete && d.required);
+  const docsOptional = track.documents.filter((d) => !d.complete && !d.required);
+
+  const valueLg =
+    "font-display text-4xl font-light leading-none tracking-tight tabular-nums sm:text-5xl";
+  const valueMd = "font-display text-xl font-light tracking-tight tabular-nums sm:text-2xl";
+  const nameText = "font-display font-light tracking-tight text-foreground";
+
   return (
     <div className="space-y-8">
       <Card className="border-border/70 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-sm font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Your application
             </p>
-            <h3 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              {track.full_name}
-            </h3>
-            <p className="mt-2 font-display text-base font-semibold text-primary sm:text-lg">
-              {track.candidate_code}
-            </p>
+            <h3 className={cn(nameText, "mt-2 text-3xl sm:text-4xl")}>{track.full_name}</h3>
+            <p className={cn(valueMd, "mt-2 text-primary")}>{track.candidate_code}</p>
           </div>
           <Badge
             variant={
               track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
             }
-            className="px-3 py-1 text-sm"
+            className="px-3 py-1 text-sm font-light"
           >
             {STATUS_LABELS[track.status] ?? track.status}
             {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
@@ -82,30 +90,32 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
         {track.cohort && (
           <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 lg:grid-cols-4 sm:text-lg">
             <div>
-              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Cohort
               </dt>
-              <dd className="mt-1.5 font-semibold">{track.cohort.name}</dd>
+              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>{track.cohort.name}</dd>
             </div>
             <div>
-              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Start
               </dt>
-              <dd className="mt-1.5 font-semibold">
+              <dd className={cn(valueMd, "mt-1.5 text-base sm:text-lg")}>
                 {track.cohort.start_date ?? "To be confirmed"}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Location
               </dt>
-              <dd className="mt-1.5 font-semibold">{track.cohort.location ?? "TBC"}</dd>
+              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
+                {track.cohort.location ?? "TBC"}
+              </dd>
             </div>
             <div>
-              <dt className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Partner bank
               </dt>
-              <dd className="mt-1.5 font-semibold">
+              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
                 {track.cohort.partner_bank ?? "Assigned after review"}
               </dd>
             </div>
@@ -113,7 +123,8 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
         )}
 
         <p className="mt-5 text-base text-muted-foreground sm:text-lg">
-          Current stage: <span className="font-semibold text-foreground">{track.current_stage}</span>
+          Current stage:{" "}
+          <span className={cn(nameText, "text-base sm:text-lg")}>{track.current_stage}</span>
           {" · "}
           Applied {new Date(track.applied_at).toLocaleDateString("en-RW")}
         </p>
@@ -122,198 +133,169 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
       <TrackVisualDashboard track={track} />
 
       <Card className="border-border/70 p-6 sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
           Programme progress
         </p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl">
+            <p className={valueLg}>
               {track.milestones.filter((m) => m.status === "complete").length}
-              <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">
+              <span className="text-2xl text-muted-foreground sm:text-3xl">
                 /{track.milestones.length}
               </span>
             </p>
             <p className="mt-2 text-base text-muted-foreground">
               Current stage:{" "}
-              <span className="font-semibold text-foreground">{track.current_stage}</span>
+              <span className={cn(nameText, "text-base")}>{track.current_stage}</span>
             </p>
           </div>
         </div>
-        <ol className="mt-6 divide-y divide-border/60 border-t border-border/60">
-          {track.milestones.map((m, i) => {
-            const Icon = milestoneIcon(m.status);
-            return (
-              <li key={m.id} className="flex items-center gap-4 py-3.5">
-                <span
-                  className={cn(
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-base",
-                    milestoneTone(m.status),
-                  )}
-                >
-                  <Icon aria-hidden size={20} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold sm:text-lg">{m.label}</p>
-                  <p className="mt-0.5 text-sm capitalize text-muted-foreground sm:text-base">
-                    {m.status.replace(/_/g, " ")}
-                  </p>
-                </div>
-                <span className="font-display text-2xl font-bold tabular-nums text-muted-foreground">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-8">
+          <HistogramChart
+            height={280}
+            bars={track.milestones.map((m, i) => ({
+              label: String(i + 1).padStart(2, "0"),
+              subLabel: m.label,
+              value:
+                m.status === "complete"
+                  ? 100
+                  : m.status === "in_progress" || m.status === "in_review"
+                    ? 55
+                    : m.status === "action_required" || m.status === "blocked"
+                      ? 25
+                      : 8,
+              color:
+                m.status === "complete"
+                  ? "var(--primary)"
+                  : m.status === "in_progress" || m.status === "in_review"
+                    ? "var(--volt)"
+                    : m.status === "action_required" || m.status === "blocked"
+                      ? "var(--destructive)"
+                      : "oklch(0.82 0.01 130)",
+            }))}
+            valueFormatter={(n) => `${n}%`}
+          />
+        </div>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
             Training
           </p>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl">
-                {track.training.status === "completed"
-                  ? "100"
-                  : track.training.status === "not_started"
-                    ? "0"
-                    : String(track.training.attendance_percentage ?? 0)}
-                <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">%</span>
-              </p>
-              <p className="mt-2 text-base text-muted-foreground">
+          <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <DonutChart
+              size={128}
+              strokeWidth={12}
+              centerLabel={`${trainingPct}%`}
+              centerSub="ready"
+              segments={[
+                { value: Math.max(trainingPct, 1), color: "var(--volt)", label: "Ready" },
+                {
+                  value: Math.max(100 - trainingPct, 1),
+                  color: "oklch(0.88 0.01 130)",
+                  label: "Left",
+                },
+              ]}
+            />
+            <div className="min-w-0 flex-1 self-stretch">
+              <p className="text-base text-muted-foreground">
                 {TRAINING_LABELS[track.training.status] ?? track.training.status} · overall readiness
               </p>
+              <div className="mt-6">
+                <HistogramChart
+                  height={220}
+                  bars={[
+                    {
+                      label: "Attendance",
+                      value: track.training.attendance_percentage ?? 0,
+                      color: "var(--volt)",
+                    },
+                    {
+                      label: "Exam",
+                      value: track.training.exam_score ?? 0,
+                      color: "var(--primary)",
+                    },
+                  ]}
+                  valueFormatter={(n) => (n ? `${n}%` : "—")}
+                />
+              </div>
+              <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+                <div className="flex items-baseline justify-between gap-4 py-3">
+                  <dt className={cn(nameText, "text-base text-muted-foreground")}>Status</dt>
+                  <dd className={valueMd}>
+                    {TRAINING_LABELS[track.training.status] ?? track.training.status}
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
-          <Progress
-            value={
-              track.training.status === "completed"
-                ? 100
-                : track.training.status === "not_started"
-                  ? 0
-                  : track.training.attendance_percentage ?? 15
-            }
-            className="mt-5 h-3.5 [&>div]:bg-volt"
-          />
-          <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Status</dt>
-              <dd className="font-display text-xl font-bold sm:text-2xl">
-                {TRAINING_LABELS[track.training.status] ?? track.training.status}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Attendance</dt>
-              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
-                {track.training.attendance_percentage != null
-                  ? `${track.training.attendance_percentage}%`
-                  : "—"}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Exam score</dt>
-              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
-                {track.training.exam_score != null ? `${track.training.exam_score}%` : "—"}
-              </dd>
-            </div>
-          </dl>
         </Card>
 
         <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
             Financing
           </p>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              {(() => {
-                const required = track.financing.deposit_required_rwf;
-                const ready = track.financing.deposit_available_rwf;
-                const pct =
-                  required && ready != null
-                    ? Math.min(100, Math.round((ready / required) * 100))
-                    : null;
-                return (
-                  <>
-                    <p
-                      className={cn(
-                        "font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl",
-                        pct != null && pct >= 100 ? "text-primary" : pct != null && pct < 50 ? "text-destructive" : "",
-                      )}
-                    >
-                      {pct != null ? pct : "—"}
-                      {pct != null && (
-                        <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">
-                          %
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-2 text-base text-muted-foreground">
-                      deposit vs required · {track.financing.preferred_financing ?? "—"}
-                    </p>
-                  </>
-                );
-              })()}
-            </div>
+          <div className="mt-3">
+            <p
+              className={cn(
+                valueLg,
+                depositPct != null && depositPct >= 100
+                  ? "text-primary"
+                  : depositPct != null && depositPct < 50
+                    ? "text-destructive"
+                    : "",
+              )}
+            >
+              {depositPct != null ? depositPct : "—"}
+              {depositPct != null && (
+                <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
+              )}
+            </p>
+            <p className="mt-2 text-base text-muted-foreground">
+              deposit vs required · {track.financing.preferred_financing ?? "—"}
+            </p>
           </div>
-          {track.financing.deposit_required_rwf != null &&
-            track.financing.deposit_available_rwf != null && (
-              <Progress
-                value={Math.min(
-                  100,
-                  (track.financing.deposit_available_rwf / track.financing.deposit_required_rwf) *
-                    100,
-                )}
-                className="mt-5 h-3.5"
-              />
-            )}
+          <div className="mt-8">
+            <HistogramChart
+              height={280}
+              bars={[
+                {
+                  label: "Vehicle",
+                  value: vehiclePrice,
+                  color: "oklch(0.35 0.04 158)",
+                },
+                {
+                  label: "Ready",
+                  value: depositReady,
+                  color: "var(--primary)",
+                },
+                {
+                  label: "Required",
+                  value: depositRequired,
+                  color: "var(--volt)",
+                },
+                {
+                  label: "Bank",
+                  value: bankFinance,
+                  color: "oklch(0.55 0.02 130)",
+                },
+              ]}
+              valueFormatter={(n) => formatRwf(n, { compact: true })}
+            />
+          </div>
           <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
             <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Term</dt>
-              <dd className="font-display text-xl font-bold sm:text-2xl">
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
+              <dd className={valueMd}>
                 {track.financing.preferred_term_years != null
                   ? `${track.financing.preferred_term_years} yrs`
                   : "—"}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Target vehicle</dt>
-              <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
-                {track.financing.target_vehicle_price_rwf
-                  ? formatRwf(track.financing.target_vehicle_price_rwf, { compact: true })
-                  : "—"}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">Deposit ready</dt>
-              <dd className="font-display text-xl font-bold tabular-nums text-primary sm:text-2xl">
-                {track.financing.deposit_available_rwf != null
-                  ? formatRwf(track.financing.deposit_available_rwf, { compact: true })
-                  : "—"}
-              </dd>
-            </div>
-            {track.financing.deposit_required_rwf != null && (
-              <div className="flex items-baseline justify-between gap-4 py-3">
-                <dt className="text-base text-muted-foreground">Deposit required</dt>
-                <dd className="font-display text-xl font-bold tabular-nums sm:text-2xl">
-                  {formatRwf(track.financing.deposit_required_rwf, { compact: true })}
-                  {track.financing.deposit_required_percent != null && (
-                    <span className="ml-1 text-base font-semibold text-muted-foreground">
-                      ({Math.round(track.financing.deposit_required_percent * 100)}%)
-                    </span>
-                  )}
-                </dd>
-              </div>
-            )}
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-base text-muted-foreground">UZA Access top-up</dt>
-              <dd
-                className={cn(
-                  "font-display text-xl font-bold sm:text-2xl",
-                  track.financing.needs_uza_access_support && "text-foreground",
-                )}
-              >
+              <dt className={cn(nameText, "text-base text-muted-foreground")}>UZA Access top-up</dt>
+              <dd className={valueMd}>
                 {track.financing.needs_uza_access_support ? "Requested" : "No"}
               </dd>
             </div>
@@ -322,14 +304,15 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
       </div>
 
       <Card className="border-border/70 p-6 sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Bank documents
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
+            <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Bank documents
+            </p>
             <p
               className={cn(
-                "font-display text-4xl font-bold leading-none tracking-tight tabular-nums sm:text-5xl",
+                valueLg,
+                "mt-3",
                 track.documents_summary.percent >= 100
                   ? "text-primary"
                   : track.documents_summary.percent === 0
@@ -338,71 +321,151 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               )}
             >
               {track.documents_summary.percent}
-              <span className="text-2xl font-semibold text-muted-foreground sm:text-3xl">%</span>
+              <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
             </p>
             <p className="mt-2 text-base text-muted-foreground">
               {track.documents_summary.complete} of {track.documents_summary.required} required on
               file
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            {[
-              {
-                label: "Received",
-                count: track.documents.filter((d) => d.complete).length,
-                color: "text-primary",
-              },
-              {
-                label: "Needed",
-                count: track.documents.filter((d) => !d.complete && d.required).length,
-                color: "text-destructive",
-              },
-              {
-                label: "Optional",
-                count: track.documents.filter((d) => !d.complete && !d.required).length,
-                color: "",
-              },
-            ].map((bucket) => (
-              <div key={bucket.label}>
-                <p className={cn("font-display text-3xl font-bold tabular-nums", bucket.color)}>
-                  {bucket.count}
-                </p>
-                <p className="text-xs text-muted-foreground sm:text-sm">{bucket.label}</p>
-              </div>
-            ))}
-          </div>
+          <DonutChart
+            size={100}
+            strokeWidth={10}
+            centerLabel={`${docsProvided.length}`}
+            centerSub="on file"
+            segments={[
+              { value: docsProvided.length || 0.001, color: "var(--primary)", label: "Provided" },
+              { value: docsMissing.length || 0.001, color: "var(--destructive)", label: "Missing" },
+              { value: docsOptional.length || 0.001, color: "oklch(0.75 0.02 130)", label: "Optional" },
+            ]}
+          />
         </div>
-        <Progress value={track.documents_summary.percent} className="mt-5 h-3.5" />
-        <ul className="mt-6 divide-y divide-border/60 border-t border-border/60">
-          {track.documents.map((doc) => (
+
+        <div className="mt-8 grid gap-5 lg:grid-cols-2">
+          <DocumentChecklist
+            title="Provided"
+            count={docsProvided.length}
+            empty="No documents received yet."
+            tone="good"
+            items={docsProvided.map((d) => ({
+              key: d.key,
+              label: d.label,
+              note: d.optional_later ? "can come later" : undefined,
+              status: "Received",
+            }))}
+          />
+          <DocumentChecklist
+            title="Missing required"
+            count={docsMissing.length}
+            empty="All required documents are on file."
+            tone="bad"
+            items={docsMissing.map((d) => ({
+              key: d.key,
+              label: d.label,
+              note: d.optional_later ? "can come later" : undefined,
+              status: "Needed",
+            }))}
+          />
+        </div>
+
+        {docsOptional.length > 0 && (
+          <div className="mt-5">
+            <DocumentChecklist
+              title="Optional remaining"
+              count={docsOptional.length}
+              empty=""
+              tone="neutral"
+              items={docsOptional.map((d) => ({
+                key: d.key,
+                label: d.label,
+                note: d.optional_later ? "can come later" : undefined,
+                status: "Optional",
+              }))}
+            />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function DocumentChecklist({
+  title,
+  count,
+  empty,
+  tone,
+  items,
+}: {
+  title: string;
+  count: number;
+  empty: string;
+  tone: "good" | "bad" | "neutral";
+  items: { key: string; label: string; note?: string; status: string }[];
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-4 sm:p-5",
+        tone === "good" && "border-primary/25 bg-primary/[0.04]",
+        tone === "bad" && "border-destructive/25 bg-destructive/[0.04]",
+        tone === "neutral" && "border-border/70 bg-muted/30",
+      )}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h4 className="font-display text-base font-light tracking-tight sm:text-lg">{title}</h4>
+        <span
+          className={cn(
+            "font-display text-2xl font-light tabular-nums",
+            tone === "good" && "text-primary",
+            tone === "bad" && "text-destructive",
+          )}
+        >
+          {count}
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {items.map((item) => (
             <li
-              key={doc.key}
-              className="flex items-center justify-between gap-4 py-3.5 text-base sm:text-lg"
+              key={item.key}
+              className="flex items-start gap-3 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5"
             >
               <span
                 className={cn(
-                  "min-w-0",
-                  doc.complete ? "font-semibold text-foreground" : "text-muted-foreground",
+                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px]",
+                  tone === "good" && "border-primary/40 bg-primary/10 text-primary",
+                  tone === "bad" && "border-destructive/40 bg-destructive/10 text-destructive",
+                  tone === "neutral" && "border-border bg-muted text-muted-foreground",
                 )}
+                aria-hidden
               >
-                {doc.label}
-                {doc.optional_later && (
-                  <span className="ml-1.5 text-sm text-muted-foreground">(can come later)</span>
-                )}
+                {tone === "good" ? <FiCheck size={12} /> : tone === "bad" ? "!" : "·"}
               </span>
-              <Badge
-                variant={doc.complete ? "default" : "secondary"}
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-sm font-light tracking-tight sm:text-base">
+                  {item.label}
+                  {item.note && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">({item.note})</span>
+                  )}
+                </p>
+              </div>
+              <span
                 className={cn(
-                  "shrink-0 px-2.5 py-1 text-sm font-semibold",
-                  !doc.complete && doc.required && "bg-destructive/10 text-destructive hover:bg-destructive/10",
+                  "shrink-0 font-display text-xs font-light uppercase tracking-wide",
+                  tone === "good" && "text-primary",
+                  tone === "bad" && "text-destructive",
+                  tone === "neutral" && "text-muted-foreground",
                 )}
               >
-                {doc.complete ? "Received" : doc.required ? "Needed" : "Optional"}
-              </Badge>
+                {item.status}
+              </span>
             </li>
           ))}
         </ul>
-      </Card>
+      )}
     </div>
   );
 }

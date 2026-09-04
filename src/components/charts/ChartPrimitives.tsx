@@ -80,7 +80,7 @@ export function DonutChart({
             {centerLabel ? (
               <span
                 className={cn(
-                  "font-display font-bold leading-none tracking-tight tabular-nums",
+                  "font-display font-light leading-none tracking-tight tabular-nums",
                   centerTextClass,
                 )}
               >
@@ -249,54 +249,163 @@ export type HistogramBar = {
   subLabel?: string;
 };
 
-/** Vertical histogram / column chart */
+function niceMax(raw: number) {
+  if (raw <= 0) return 1;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const norm = raw / mag;
+  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
+function yTicks(max: number, count = 4) {
+  const step = max / count;
+  return Array.from({ length: count + 1 }, (_, i) => Math.round(step * i * 1000) / 1000);
+}
+
+/** Vertical histogram on a Cartesian plane (X categories, Y values). */
 export function HistogramChart({
   bars,
-  height = 200,
+  height = 280,
   valueFormatter,
 }: {
   bars: HistogramBar[];
   height?: number;
   valueFormatter?: (n: number) => string;
 }) {
-  const max = Math.max(...bars.map((b) => b.value), 1);
   const fmt = valueFormatter ?? ((n: number) => String(n));
+  const dataMax = Math.max(...bars.map((b) => b.value), 0);
+  const yMax = niceMax(dataMax || 1);
+  const ticks = yTicks(yMax);
+
+  const pad = { top: 24, right: 24, bottom: 64, left: 72 };
+  const plotW = Math.max(bars.length * 72, 420);
+  const plotH = Math.max(220, height);
+  const vbW = pad.left + plotW + pad.right;
+  const vbH = pad.top + plotH + pad.bottom;
+  const n = Math.max(bars.length, 1);
+  const slot = plotW / n;
+  const barW = Math.min(slot * 0.62, 56);
+
+  const axisFmt = (n: number) => {
+    const s = fmt(n);
+    return s.length > 10 ? s.slice(0, 9) + "…" : s;
+  };
 
   return (
     <div className="w-full min-w-0">
-      <div className="flex items-end gap-2 sm:gap-3" style={{ height }}>
-        {bars.map((bar) => {
-          const pct = Math.max(4, Math.round((bar.value / max) * 100));
+      <svg
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        width="100%"
+        height={Math.max(height + 72, 320)}
+        className="overflow-visible text-foreground"
+        role="img"
+        aria-label="Histogram chart"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Grid + Y axis ticks */}
+        {ticks.map((t) => {
+          const y = pad.top + plotH - (t / yMax) * plotH;
           return (
-            <div key={bar.label} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
-              <span className="font-display text-sm font-bold tabular-nums sm:text-base">
-                {fmt(bar.value)}
-              </span>
-              <div className="relative flex w-full flex-1 items-end justify-center">
-                <div
-                  className="w-full max-w-[3.5rem] rounded-t-md transition-all"
-                  style={{
-                    height: `${pct}%`,
-                    backgroundColor: bar.color || "var(--primary)",
-                    minHeight: bar.value > 0 ? 8 : 2,
-                  }}
-                  title={`${bar.label}: ${fmt(bar.value)}`}
-                />
-              </div>
-            </div>
+            <g key={`y-${t}`}>
+              <line
+                x1={pad.left}
+                y1={y}
+                x2={pad.left + plotW}
+                y2={y}
+                stroke="currentColor"
+                strokeOpacity={0.12}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x={pad.left - 10}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill="currentColor"
+                opacity={0.55}
+                style={{ fontSize: 13, fontFamily: "inherit", fontWeight: 300 }}
+              >
+                {axisFmt(t)}
+              </text>
+            </g>
           );
         })}
-      </div>
-      <div className="mt-3 flex gap-2 sm:gap-3 border-t border-border/60 pt-3">
-        {bars.map((bar) => (
-          <div key={`${bar.label}-cap`} className="min-w-0 flex-1 text-center">
-            <p className="truncate text-xs font-medium sm:text-sm">{bar.label}</p>
-            {bar.subLabel && (
-              <p className="truncate text-[11px] text-muted-foreground">{bar.subLabel}</p>
-            )}
-          </div>
-        ))}
-      </div>
+
+        {/* Axes (Cartesian plane) */}
+        <line
+          x1={pad.left}
+          y1={pad.top}
+          x2={pad.left}
+          y2={pad.top + plotH}
+          stroke="currentColor"
+          strokeOpacity={0.45}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={pad.left}
+          y1={pad.top + plotH}
+          x2={pad.left + plotW}
+          y2={pad.top + plotH}
+          stroke="currentColor"
+          strokeOpacity={0.45}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+        {/* Origin tick marks */}
+        <line
+          x1={pad.left - 5}
+          y1={pad.top + plotH}
+          x2={pad.left}
+          y2={pad.top + plotH}
+          stroke="currentColor"
+          strokeOpacity={0.45}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Bars + X labels */}
+        {bars.map((bar, i) => {
+          const cx = pad.left + slot * i + slot / 2;
+          const h = (bar.value / yMax) * plotH;
+          const y = pad.top + plotH - h;
+          return (
+            <g key={bar.label}>
+              <title>{`${bar.label}${bar.subLabel ? ` · ${bar.subLabel}` : ""}: ${fmt(bar.value)}`}</title>
+              <rect
+                x={cx - barW / 2}
+                y={Number.isFinite(y) ? y : pad.top + plotH}
+                width={barW}
+                height={Math.max(h, bar.value > 0 ? 3 : 0)}
+                fill={bar.color || "var(--primary)"}
+                rx={3}
+              />
+              <text
+                x={cx}
+                y={pad.top + plotH + 20}
+                textAnchor="middle"
+                fill="currentColor"
+                style={{ fontSize: 13, fontFamily: "inherit", fontWeight: 300 }}
+              >
+                {bar.label.length > 14 ? `${bar.label.slice(0, 13)}…` : bar.label}
+              </text>
+              {bar.subLabel && (
+                <text
+                  x={cx}
+                  y={pad.top + plotH + 36}
+                  textAnchor="middle"
+                  fill="currentColor"
+                  opacity={0.55}
+                  style={{ fontSize: 11, fontFamily: "inherit", fontWeight: 300 }}
+                >
+                  {bar.subLabel.length > 16 ? `${bar.subLabel.slice(0, 15)}…` : bar.subLabel}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -312,7 +421,7 @@ export type GroupedBarGroup = {
   values: Record<string, number>;
 };
 
-/** Grouped vertical bars (e.g. filled vs waiting per cohort) */
+/** Grouped vertical bars on a Cartesian plane. */
 export function GroupedHistogram({
   groups,
   series,
@@ -322,54 +431,131 @@ export function GroupedHistogram({
   series: GroupedBarSeries[];
   height?: number;
 }) {
-  const max = Math.max(
-    1,
+  const dataMax = Math.max(
+    0,
     ...groups.flatMap((g) => series.map((s) => g.values[s.key] ?? 0)),
   );
+  const yMax = niceMax(dataMax || 1);
+  const ticks = yTicks(yMax);
+  const fmt = (n: number) => String(n);
+
+  const pad = { top: 18, right: 16, bottom: 44, left: 44 };
+  const plotW = Math.max(groups.length * 36, 160);
+  const plotH = Math.max(140, height - 48);
+  const vbW = pad.left + plotW + pad.right;
+  const vbH = pad.top + plotH + pad.bottom;
+  const n = Math.max(groups.length, 1);
+  const slot = plotW / n;
+  const clusterW = slot * 0.72;
+  const gap = 2;
+  const barW = Math.max(4, (clusterW - gap * (series.length - 1)) / Math.max(series.length, 1));
 
   return (
-    <div className="w-full min-w-0">
-      <div className="mb-4 flex flex-wrap gap-4">
+    <div className="w-full min-w-0 overflow-x-auto">
+      <div className="mb-3 flex flex-wrap gap-4">
         {series.map((s) => (
           <div key={s.key} className="flex items-center gap-2 text-sm">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-            <span className="text-muted-foreground">{s.label}</span>
+            <span className="font-light text-muted-foreground">{s.label}</span>
           </div>
         ))}
       </div>
-      <div className="flex items-end gap-3 sm:gap-4" style={{ height }}>
-        {groups.map((group) => (
-          <div key={group.label} className="flex min-w-0 flex-1 items-end justify-center gap-1">
-            {series.map((s) => {
-              const value = group.values[s.key] ?? 0;
-              const pct = Math.max(value > 0 ? 6 : 2, Math.round((value / max) * 100));
-              return (
-                <div key={s.key} className="flex w-full max-w-[1.75rem] flex-col items-center gap-1">
-                  <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-                    {value}
-                  </span>
-                  <div
-                    className="w-full rounded-t-sm"
-                    style={{
-                      height: `${(pct / 100) * (height - 28)}px`,
-                      backgroundColor: s.color,
-                      minHeight: value > 0 ? 6 : 2,
-                    }}
-                    title={`${group.label} · ${s.label}: ${value}`}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex gap-3 sm:gap-4 border-t border-border/60 pt-3">
-        {groups.map((group) => (
-          <p key={group.label} className="min-w-0 flex-1 truncate text-center text-xs font-medium sm:text-sm">
-            {group.label}
-          </p>
-        ))}
-      </div>
+      <svg
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        width="100%"
+        height={height}
+        className="overflow-visible text-foreground"
+        role="img"
+        aria-label="Grouped histogram chart"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {ticks.map((t) => {
+          const y = pad.top + plotH - (t / yMax) * plotH;
+          return (
+            <g key={`gy-${t}`}>
+              <line
+                x1={pad.left}
+                y1={y}
+                x2={pad.left + plotW}
+                y2={y}
+                stroke="currentColor"
+                strokeOpacity={0.12}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x={pad.left - 8}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill="currentColor"
+                opacity={0.55}
+                style={{ fontSize: 11, fontFamily: "inherit", fontWeight: 300 }}
+              >
+                {fmt(t)}
+              </text>
+            </g>
+          );
+        })}
+
+        <line
+          x1={pad.left}
+          y1={pad.top}
+          x2={pad.left}
+          y2={pad.top + plotH}
+          stroke="currentColor"
+          strokeOpacity={0.45}
+          strokeWidth={1.25}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={pad.left}
+          y1={pad.top + plotH}
+          x2={pad.left + plotW}
+          y2={pad.top + plotH}
+          stroke="currentColor"
+          strokeOpacity={0.45}
+          strokeWidth={1.25}
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {groups.map((group, gi) => {
+          const slotCenter = pad.left + slot * gi + slot / 2;
+          const clusterLeft = slotCenter - clusterW / 2;
+          return (
+            <g key={group.label}>
+              {series.map((s, si) => {
+                const value = group.values[s.key] ?? 0;
+                const h = (value / yMax) * plotH;
+                const x = clusterLeft + si * (barW + gap);
+                const y = pad.top + plotH - h;
+                return (
+                  <rect
+                    key={s.key}
+                    x={x}
+                    y={y}
+                    width={barW}
+                    height={Math.max(h, value > 0 ? 2 : 0)}
+                    fill={s.color}
+                    rx={2}
+                  >
+                    <title>{`${group.label} · ${s.label}: ${value}`}</title>
+                  </rect>
+                );
+              })}
+              <text
+                x={slotCenter}
+                y={pad.top + plotH + 18}
+                textAnchor="middle"
+                fill="currentColor"
+                style={{ fontSize: 11, fontFamily: "inherit", fontWeight: 300 }}
+              >
+                {group.label.length > 12 ? `${group.label.slice(0, 11)}…` : group.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
