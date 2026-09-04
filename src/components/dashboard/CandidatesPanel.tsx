@@ -77,7 +77,7 @@ const TRAINING_LABELS: Record<string, string> = {
 
 const LOAN_LABELS: Record<string, string> = {
   not_ready: "Not ready",
-  pending: "Pending",
+  pending: "Loan ready",
   in_review: "In review",
   approved: "Approved",
   declined: "Declined",
@@ -259,6 +259,7 @@ export function CandidatesPanel({
           <TableHeader>
             <TableRow>
               <TableHead>Candidate</TableHead>
+              <TableHead>EV of choice</TableHead>
               <TableHead>Cohort</TableHead>
               <TableHead>Phone</TableHead>
               {!isBankPartner && <TableHead>Status</TableHead>}
@@ -278,6 +279,18 @@ export function CandidatesPanel({
                     <p className="mt-0.5 font-mono text-sm font-semibold text-primary">
                       {c.candidate_code || "—"}
                     </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="min-w-0 max-w-[14rem]">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {c.target_vehicle_name?.trim() || "—"}
+                    </p>
+                    {c.target_vehicle_price_rwf > 0 && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {c.target_vehicle_price_rwf.toLocaleString("en-RW")} RWF
+                      </p>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
@@ -390,7 +403,7 @@ export function CandidatesPanel({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="text-destructive"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         disabled={remove.isPending}
                         onClick={() => confirmDelete(c)}
                       >

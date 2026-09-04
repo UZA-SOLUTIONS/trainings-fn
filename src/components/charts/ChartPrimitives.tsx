@@ -267,10 +267,13 @@ export function HistogramChart({
   bars,
   height = 280,
   valueFormatter,
+  minSlotWidth = 72,
 }: {
   bars: HistogramBar[];
   height?: number;
   valueFormatter?: (n: number) => string;
+  /** Minimum width (px) allocated per bar — increases overall chart width. */
+  minSlotWidth?: number;
 }) {
   const fmt = valueFormatter ?? ((n: number) => String(n));
   const dataMax = Math.max(...bars.map((b) => b.value), 0);
@@ -278,13 +281,13 @@ export function HistogramChart({
   const ticks = yTicks(yMax);
 
   const pad = { top: 24, right: 24, bottom: 64, left: 72 };
-  const plotW = Math.max(bars.length * 72, 420);
+  const plotW = Math.max(bars.length * minSlotWidth, 420);
   const plotH = Math.max(220, height);
   const vbW = pad.left + plotW + pad.right;
   const vbH = pad.top + plotH + pad.bottom;
   const n = Math.max(bars.length, 1);
   const slot = plotW / n;
-  const barW = Math.min(slot * 0.62, 56);
+  const barW = Math.min(slot * 0.62, Math.max(56, minSlotWidth * 0.55));
 
   const axisFmt = (n: number) => {
     const s = fmt(n);

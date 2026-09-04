@@ -33,7 +33,7 @@ const TRAINING_LABELS: Record<string, string> = {
 
 const LOAN_LABELS: Record<string, string> = {
   not_ready: "Not ready",
-  pending: "Pending",
+  pending: "Loan ready",
   in_review: "In review",
   approved: "Approved",
   declined: "Declined",
@@ -293,6 +293,9 @@ export function BankTrackResult({
                       : "—"}
                     {c.needs_uza_access_support && (
                       <p className="text-xs text-foreground">UZA Access</p>
+                    )}
+                    {c.target_vehicle_name && (
+                      <p className="text-xs text-foreground">{c.target_vehicle_name}</p>
                     )}
                     {c.target_vehicle_price_rwf != null && (
                       <p className="text-xs text-muted-foreground">

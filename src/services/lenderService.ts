@@ -34,6 +34,7 @@ export type LenderFile = {
     released: boolean;
     callable: boolean;
   };
+  wallet?: import("@/components/home/WalletUsagePanel").WalletPreview;
 };
 
 export type UpdateLenderFilePatch = {

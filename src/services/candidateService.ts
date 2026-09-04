@@ -65,6 +65,7 @@ export type Candidate = {
   spouse_name: string;
   is_cooperative_member: boolean;
   cooperative_name: string;
+  target_vehicle_name: string;
   target_vehicle_price_rwf: number;
   offers_collateral: boolean;
   collateral_description: string;
@@ -215,6 +216,7 @@ export type CandidateTrackView = {
   financing: {
     preferred_financing: string | null;
     preferred_term_years: number | null;
+    target_vehicle_name: string | null;
     target_vehicle_price_rwf: number;
     deposit_available_rwf: number | null;
     deposit_required_rwf: number | null;
@@ -237,6 +239,8 @@ export type CandidateTrackView = {
     status: TrackMilestoneStatus;
     detail: string;
   }>;
+  wallet?: import("@/components/home/WalletUsagePanel").WalletPreview;
+  garage?: import("@/components/home/GarageHealthPanel").GaragePreview;
 };
 
 export type BankTrackCandidate = {
@@ -252,6 +256,7 @@ export type BankTrackCandidate = {
   listed_on_crb: boolean;
   needs_uza_access_support: boolean;
   deposit_available_rwf: number | null;
+  target_vehicle_name: string | null;
   target_vehicle_price_rwf: number | null;
   preferred_financing: string | null;
   documents_percent: number;

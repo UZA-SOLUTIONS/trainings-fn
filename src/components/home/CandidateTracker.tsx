@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FiCheck, FiSearch } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import {
   trackLookup,
   type CandidateTrackView,
@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { TrackVisualDashboard } from "@/components/home/TrackVisuals";
+import { WalletUsagePanel } from "@/components/home/WalletUsagePanel";
+import { GarageHealthPanel } from "@/components/home/GarageHealthPanel";
+import { resolveTrackGarage, resolveTrackWallet } from "@/components/home/trackFallbacks";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
@@ -37,6 +40,9 @@ export function friendlyTrackError(err: unknown): string {
 }
 
 export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
+  const wallet = resolveTrackWallet(track);
+  const garage = resolveTrackGarage(track);
+
   const trainingPct =
     track.training.status === "completed"
       ? 100
@@ -65,30 +71,43 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
   const valueMd = "font-display text-xl font-light tracking-tight tabular-nums sm:text-2xl";
   const nameText = "font-display font-light tracking-tight text-foreground";
 
+  const isCertified =
+    track.training.status === "completed" || track.status === "graduated";
+
   return (
     <div className="space-y-8">
       <Card className="border-border/70 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Your application
-            </p>
-            <h3 className={cn(nameText, "mt-2 text-3xl sm:text-4xl")}>{track.full_name}</h3>
+            <h3 className={cn(nameText, "text-3xl sm:text-4xl")}>{track.full_name}</h3>
             <p className={cn(valueMd, "mt-2 text-primary")}>{track.candidate_code}</p>
           </div>
-          <Badge
-            variant={
-              track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
-            }
-            className="px-3 py-1 text-sm font-light"
-          >
-            {STATUS_LABELS[track.status] ?? track.status}
-            {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
-          </Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge
+              variant={isCertified ? "default" : "secondary"}
+              className={cn(
+                "px-3 py-1 text-sm font-light",
+                isCertified
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-destructive/30 bg-destructive/10 text-destructive",
+              )}
+            >
+              {isCertified ? "Certified" : "Not certified"}
+            </Badge>
+            <Badge
+              variant={
+                track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
+              }
+              className="px-3 py-1 text-sm font-light"
+            >
+              {STATUS_LABELS[track.status] ?? track.status}
+              {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
+            </Badge>
+          </div>
         </div>
 
         {track.cohort && (
-          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 lg:grid-cols-4 sm:text-lg">
+          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:text-lg">
             <div>
               <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Cohort
@@ -119,6 +138,27 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
                 {track.cohort.partner_bank ?? "Assigned after review"}
               </dd>
             </div>
+            <div>
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                EV of choice
+              </dt>
+              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
+                {track.financing.target_vehicle_name?.trim() || "Not selected yet"}
+              </dd>
+            </div>
+          </dl>
+        )}
+
+        {!track.cohort && track.financing.target_vehicle_name && (
+          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 sm:text-lg">
+            <div>
+              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                EV of choice
+              </dt>
+              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
+                {track.financing.target_vehicle_name}
+              </dd>
+            </div>
           </dl>
         )}
 
@@ -130,53 +170,14 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
         </p>
       </Card>
 
-      <TrackVisualDashboard track={track} />
+      <WalletUsagePanel wallet={wallet} variant="track" />
 
-      <Card className="border-border/70 p-6 sm:p-8">
-        <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          Programme progress
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className={valueLg}>
-              {track.milestones.filter((m) => m.status === "complete").length}
-              <span className="text-2xl text-muted-foreground sm:text-3xl">
-                /{track.milestones.length}
-              </span>
-            </p>
-            <p className="mt-2 text-base text-muted-foreground">
-              Current stage:{" "}
-              <span className={cn(nameText, "text-base")}>{track.current_stage}</span>
-            </p>
-          </div>
-        </div>
-        <div className="mt-8">
-          <HistogramChart
-            height={280}
-            bars={track.milestones.map((m, i) => ({
-              label: String(i + 1).padStart(2, "0"),
-              subLabel: m.label,
-              value:
-                m.status === "complete"
-                  ? 100
-                  : m.status === "in_progress" || m.status === "in_review"
-                    ? 55
-                    : m.status === "action_required" || m.status === "blocked"
-                      ? 25
-                      : 8,
-              color:
-                m.status === "complete"
-                  ? "var(--primary)"
-                  : m.status === "in_progress" || m.status === "in_review"
-                    ? "var(--volt)"
-                    : m.status === "action_required" || m.status === "blocked"
-                      ? "var(--destructive)"
-                      : "oklch(0.82 0.01 130)",
-            }))}
-            valueFormatter={(n) => `${n}%`}
-          />
-        </div>
-      </Card>
+      <GarageHealthPanel
+        garage={garage}
+        evOfChoice={track.financing.target_vehicle_name}
+      />
+
+      <TrackVisualDashboard track={track} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/70 p-6 sm:p-8">
@@ -285,6 +286,14 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
             />
           </div>
           <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+            {track.financing.target_vehicle_name && (
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>EV of choice</dt>
+                <dd className={cn(nameText, "max-w-[60%] text-right text-base sm:text-lg")}>
+                  {track.financing.target_vehicle_name}
+                </dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-4 py-3">
               <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
               <dd className={valueMd}>
@@ -306,9 +315,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
       <Card className="border-border/70 p-6 sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              Bank documents
-            </p>
+            <h3 className={cn(nameText, "text-2xl sm:text-3xl")}>Bank documents</h3>
             <p
               className={cn(
                 valueLg,
@@ -324,15 +331,14 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
             </p>
             <p className="mt-2 text-base text-muted-foreground">
-              {track.documents_summary.complete} of {track.documents_summary.required} required on
-              file
+              {track.documents_summary.complete}/{track.documents_summary.required} required
             </p>
           </div>
           <DonutChart
-            size={100}
-            strokeWidth={10}
-            centerLabel={`${docsProvided.length}`}
-            centerSub="on file"
+            size={120}
+            strokeWidth={12}
+            centerLabel={`${track.documents_summary.percent}%`}
+            centerSub="file"
             segments={[
               { value: docsProvided.length || 0.001, color: "var(--primary)", label: "Provided" },
               { value: docsMissing.length || 0.001, color: "var(--destructive)", label: "Missing" },
@@ -341,131 +347,76 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
           />
         </div>
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          <DocumentChecklist
-            title="Provided"
-            count={docsProvided.length}
-            empty="No documents received yet."
-            tone="good"
-            items={docsProvided.map((d) => ({
-              key: d.key,
-              label: d.label,
-              note: d.optional_later ? "can come later" : undefined,
-              status: "Received",
-            }))}
-          />
-          <DocumentChecklist
-            title="Missing required"
-            count={docsMissing.length}
-            empty="All required documents are on file."
-            tone="bad"
-            items={docsMissing.map((d) => ({
-              key: d.key,
-              label: d.label,
-              note: d.optional_later ? "can come later" : undefined,
-              status: "Needed",
-            }))}
-          />
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              label: "On file",
+              count: docsProvided.length,
+              color: "bg-primary",
+              text: "text-primary",
+              pct:
+                track.documents.length > 0
+                  ? Math.round((docsProvided.length / track.documents.length) * 100)
+                  : 0,
+            },
+            {
+              label: "Still needed",
+              count: docsMissing.length,
+              color: "bg-destructive",
+              text: "text-destructive",
+              pct:
+                track.documents.length > 0
+                  ? Math.round((docsMissing.length / track.documents.length) * 100)
+                  : 0,
+            },
+            {
+              label: "Optional",
+              count: docsOptional.length,
+              color: "bg-foreground/30",
+              text: "text-muted-foreground",
+              pct:
+                track.documents.length > 0
+                  ? Math.round((docsOptional.length / track.documents.length) * 100)
+                  : 0,
+            },
+          ].map((row) => (
+            <div key={row.label} className="rounded-xl border border-border/50 bg-muted/20 px-4 py-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className={cn(nameText, "text-base text-muted-foreground")}>{row.label}</p>
+                <p className={cn(valueMd, row.text)}>{row.count}</p>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn("h-full rounded-full transition-all", row.color)}
+                  style={{ width: `${Math.min(100, row.pct)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
-        {docsOptional.length > 0 && (
-          <div className="mt-5">
-            <DocumentChecklist
-              title="Optional remaining"
-              count={docsOptional.length}
-              empty=""
-              tone="neutral"
-              items={docsOptional.map((d) => ({
-                key: d.key,
-                label: d.label,
-                note: d.optional_later ? "can come later" : undefined,
-                status: "Optional",
-              }))}
-            />
-          </div>
-        )}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {track.documents.map((d) => {
+            const tone = d.complete
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : d.required
+                ? "border-destructive/25 bg-destructive/5 text-destructive"
+                : "border-border/60 bg-muted/40 text-muted-foreground";
+            return (
+              <span
+                key={d.key}
+                className={cn(
+                  "inline-flex max-w-full items-center rounded-lg border px-2.5 py-1.5 font-display text-xs font-light tracking-tight sm:text-sm",
+                  tone,
+                )}
+                title={d.label}
+              >
+                <span className="truncate">{d.label}</span>
+              </span>
+            );
+          })}
+        </div>
       </Card>
-    </div>
-  );
-}
-
-function DocumentChecklist({
-  title,
-  count,
-  empty,
-  tone,
-  items,
-}: {
-  title: string;
-  count: number;
-  empty: string;
-  tone: "good" | "bad" | "neutral";
-  items: { key: string; label: string; note?: string; status: string }[];
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border p-4 sm:p-5",
-        tone === "good" && "border-primary/25 bg-primary/[0.04]",
-        tone === "bad" && "border-destructive/25 bg-destructive/[0.04]",
-        tone === "neutral" && "border-border/70 bg-muted/30",
-      )}
-    >
-      <div className="flex items-baseline justify-between gap-3">
-        <h4 className="font-display text-base font-light tracking-tight sm:text-lg">{title}</h4>
-        <span
-          className={cn(
-            "font-display text-2xl font-light tabular-nums",
-            tone === "good" && "text-primary",
-            tone === "bad" && "text-destructive",
-          )}
-        >
-          {count}
-        </span>
-      </div>
-
-      {items.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {items.map((item) => (
-            <li
-              key={item.key}
-              className="flex items-start gap-3 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5"
-            >
-              <span
-                className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px]",
-                  tone === "good" && "border-primary/40 bg-primary/10 text-primary",
-                  tone === "bad" && "border-destructive/40 bg-destructive/10 text-destructive",
-                  tone === "neutral" && "border-border bg-muted text-muted-foreground",
-                )}
-                aria-hidden
-              >
-                {tone === "good" ? <FiCheck size={12} /> : tone === "bad" ? "!" : "·"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-display text-sm font-light tracking-tight sm:text-base">
-                  {item.label}
-                  {item.note && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">({item.note})</span>
-                  )}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 font-display text-xs font-light uppercase tracking-wide",
-                  tone === "good" && "text-primary",
-                  tone === "bad" && "text-destructive",
-                  tone === "neutral" && "text-muted-foreground",
-                )}
-              >
-                {item.status}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

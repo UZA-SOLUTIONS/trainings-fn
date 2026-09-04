@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
+import { resolveTrackGarage, resolveTrackWallet } from "@/components/home/trackFallbacks";
 
 const MILESTONE_COLORS: Record<TrackMilestoneStatus, string> = {
   complete: "var(--primary)",
@@ -134,12 +135,6 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
   const vehiclePrice = track.financing.target_vehicle_price_rwf || 0;
   const bankFinance = Math.max(0, vehiclePrice - depositReady);
 
-  const approvalComplete = track.approvals.filter((a) => a.status === "complete").length;
-  const approvalAction = track.approvals.filter((a) =>
-    ["action_required", "blocked"].includes(a.status),
-  ).length;
-  const approvalPending = track.approvals.length - approvalComplete - approvalAction;
-
   const journeyTone: Tone =
     milestonePct >= 70 ? "good" : actionMilestones > 0 ? "bad" : milestonePct > 0 ? "warn" : "neutral";
   const docsTone: Tone =
@@ -151,13 +146,69 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
 
   const financeMax = Math.max(vehiclePrice, depositReady, depositRequired, bankFinance, 1);
 
+  const wallet = resolveTrackWallet(track);
+  const garage = resolveTrackGarage(track);
+  const walletAvailable = wallet.balances?.available_rwf ?? 0;
+  const garageScore = garage.health?.overall_score ?? 0;
+
   return (
     <div className="space-y-8">
       <div>
         <h3 className={cn(NAME, "text-xl sm:text-2xl")}>Status at a glance</h3>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <AnalysisKpi
+          title="Wallet app"
+          value={`${walletAvailable}`}
+          unit="RWF"
+          tone="neutral"
+          insight={`MoMo ${wallet.app_numbers?.momo ?? "0"} · Airtel ${wallet.app_numbers?.airtel ?? "0"} · UZA ${wallet.app_numbers?.uza_wallet ?? "0"}`}
+          segments={[{ value: 1, color: "oklch(0.85 0.01 130)", label: "Awaiting ledger" }]}
+          rows={[
+            { label: "Available", value: formatRwf(walletAvailable, { compact: true }) },
+            {
+              label: "Savings locked",
+              value: formatRwf(wallet.balances?.savings_locked_rwf ?? 0, { compact: true }),
+            },
+            {
+              label: "Commission owed",
+              value: formatRwf(wallet.balances?.commission_owed_rwf ?? 0, { compact: true }),
+            },
+          ]}
+        />
+        <AnalysisKpi
+          title="Garage health"
+          value={`${garageScore}`}
+          unit="/100"
+          tone={
+            garage.live
+              ? garageScore >= 70
+                ? "good"
+                : garageScore > 0
+                  ? "warn"
+                  : "bad"
+              : "neutral"
+          }
+          insight={
+            garage.live
+              ? `${garage.health.status} · battery ${garage.health.battery_percent}%`
+              : "Awaiting garage sync · health numbers stay at 0"
+          }
+          segments={[
+            { value: Math.max(garageScore, 1), color: "var(--volt)", label: "Score" },
+            {
+              value: Math.max(100 - garageScore, 1),
+              color: "oklch(0.85 0.01 130)",
+              label: "Gap",
+            },
+          ]}
+          rows={[
+            { label: "Battery", value: `${garage.health.battery_percent}%` },
+            { label: "Range", value: `${garage.health.range_km} km` },
+            { label: "Updates", value: String(garage.updates.length) },
+          ]}
+        />
         <AnalysisKpi
           title="Programme journey"
           value={`${milestonePct}`}
@@ -178,7 +229,9 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             { label: "Pending", value: String(pendingMilestones) },
           ]}
         />
+      </div>
 
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <AnalysisKpi
           title="Document file"
           value={`${track.documents_summary.percent}`}
@@ -281,61 +334,38 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Milestone timeline
-          </p>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className={VALUE_LG}>
-                {completedMilestones}
-                <span className="text-2xl text-muted-foreground sm:text-3xl">
-                  /{track.milestones.length}
-                </span>
-              </p>
-              <p className="mt-2 text-base text-muted-foreground">
-                stages complete · {milestonePct}% of programme journey
-              </p>
-            </div>
+      <Card className="border-border/70 p-6 sm:p-8">
+        <p className={cn(NAME, "text-xl sm:text-2xl")}>Milestone timeline</p>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className={VALUE_LG}>
+              {completedMilestones}
+              <span className="text-2xl text-muted-foreground sm:text-3xl">
+                /{track.milestones.length}
+              </span>
+            </p>
+            <p className="mt-2 text-base text-muted-foreground">
+              stages complete · {milestonePct}% of programme journey
+            </p>
           </div>
+        </div>
 
-          <div className="mt-8 w-full">
-            <HistogramChart
-              height={260}
-              bars={track.milestones.map((m, i) => ({
-                label: String(i + 1).padStart(2, "0"),
-                subLabel: m.label,
-                value: milestoneBarValue(m.status),
-                color: MILESTONE_COLORS[m.status],
-              }))}
-              valueFormatter={(n) => `${n}%`}
-            />
-          </div>
+        <div className="mt-8 w-full min-w-0">
+          <HistogramChart
+            height={320}
+            minSlotWidth={110}
+            bars={track.milestones.map((m, i) => ({
+              label: String(i + 1).padStart(2, "0"),
+              subLabel: m.label,
+              value: milestoneBarValue(m.status),
+              color: MILESTONE_COLORS[m.status],
+            }))}
+            valueFormatter={(n) => `${n}%`}
+          />
+        </div>
+      </Card>
 
-          <ul className="mt-6 grid gap-2 sm:grid-cols-2">
-            {track.milestones.map((m, i) => (
-              <li
-                key={m.id}
-                className="flex items-center gap-2.5 rounded-lg border border-border/50 px-3 py-2.5"
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: MILESTONE_COLORS[m.status] }}
-                  aria-hidden
-                />
-                <span className={cn(NAME, "min-w-0 flex-1 truncate text-sm sm:text-base")}>
-                  {String(i + 1).padStart(2, "0")} · {m.label}
-                </span>
-                <span className="shrink-0 font-display text-xs font-light capitalize text-muted-foreground">
-                  {m.status.replace(/_/g, " ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card className="border-border/70 p-6 sm:p-8">
+      <Card className="border-border/70 p-6 sm:p-8">
           <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
             Financing breakdown
           </p>
@@ -345,7 +375,11 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
                 {vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—"}
               </p>
               <p className="mt-2 text-base text-muted-foreground">
-                target vehicle · deposit cover{" "}
+                target vehicle
+                {track.financing.target_vehicle_name
+                  ? ` · ${track.financing.target_vehicle_name}`
+                  : ""}{" "}
+                · deposit cover{" "}
                 <span
                   className={cn(
                     "font-display font-light",
@@ -407,174 +441,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             </p>
           )}
         </Card>
-      </div>
 
-      {track.approvals.length > 0 && (
-        <Card className="border-border/70 p-6 sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Action items
-              </p>
-              <p
-                className={cn(
-                  VALUE_LG,
-                  "mt-3",
-                  approvalAction > 0 ? "text-destructive" : "text-primary",
-                )}
-              >
-                {approvalAction}
-              </p>
-              <p className="mt-2 text-base text-muted-foreground">
-                need action · {approvalComplete} done · {approvalPending} pending
-              </p>
-            </div>
-            <DonutChart
-              size={100}
-              strokeWidth={10}
-              centerLabel={`${track.approvals.length}`}
-              centerSub="items"
-              segments={[
-                {
-                  value: approvalComplete || 0.001,
-                  color: "var(--primary)",
-                  label: "Done",
-                },
-                {
-                  value: approvalAction || 0.001,
-                  color: "var(--destructive)",
-                  label: "Action",
-                },
-                {
-                  value: approvalPending || 0.001,
-                  color: "oklch(0.82 0.01 130)",
-                  label: "Pending",
-                },
-              ]}
-            />
-          </div>
-
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
-            <ActionChecklist
-              title="Action required"
-              count={approvalAction}
-              empty="Nothing needs your attention right now."
-              tone="bad"
-              items={track.approvals
-                .filter((a) => a.status === "action_required" || a.status === "blocked")
-                .map((a) => ({
-                  key: `${a.type}-${a.label}`,
-                  label: a.label,
-                  detail: a.detail,
-                  status: a.status.replace(/_/g, " "),
-                }))}
-            />
-            <ActionChecklist
-              title="Pending"
-              count={approvalPending}
-              empty="No pending items."
-              tone="neutral"
-              items={track.approvals
-                .filter((a) => a.status === "pending")
-                .map((a) => ({
-                  key: `${a.type}-${a.label}`,
-                  label: a.label,
-                  detail: a.detail,
-                  status: "pending",
-                }))}
-            />
-            <ActionChecklist
-              title="In progress / done"
-              count={
-                approvalComplete +
-                track.approvals.filter((a) =>
-                  ["in_progress", "in_review"].includes(a.status),
-                ).length
-              }
-              empty="No completed or active items yet."
-              tone="good"
-              items={track.approvals
-                .filter((a) =>
-                  ["complete", "in_progress", "in_review"].includes(a.status),
-                )
-                .map((a) => ({
-                  key: `${a.type}-${a.label}`,
-                  label: a.label,
-                  detail: a.detail,
-                  status: a.status.replace(/_/g, " "),
-                }))}
-            />
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function ActionChecklist({
-  title,
-  count,
-  empty,
-  tone,
-  items,
-}: {
-  title: string;
-  count: number;
-  empty: string;
-  tone: "good" | "bad" | "neutral";
-  items: { key: string; label: string; detail: string; status: string }[];
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border p-4 sm:p-5",
-        tone === "good" && "border-primary/25 bg-primary/[0.04]",
-        tone === "bad" && "border-destructive/25 bg-destructive/[0.04]",
-        tone === "neutral" && "border-border/70 bg-muted/30",
-      )}
-    >
-      <div className="flex items-baseline justify-between gap-3">
-        <h4 className="font-display text-base font-light tracking-tight sm:text-lg">{title}</h4>
-        <span
-          className={cn(
-            "font-display text-2xl font-light tabular-nums",
-            tone === "good" && "text-primary",
-            tone === "bad" && "text-destructive",
-          )}
-        >
-          {count}
-        </span>
-      </div>
-
-      {items.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {items.map((item) => (
-            <li
-              key={item.key}
-              className="rounded-lg border border-border/40 bg-background/80 px-3 py-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 font-display text-sm font-light tracking-tight sm:text-base">
-                  {item.label}
-                </p>
-                <span
-                  className={cn(
-                    "shrink-0 font-display text-xs font-light capitalize tracking-wide",
-                    tone === "good" && "text-primary",
-                    tone === "bad" && "text-destructive",
-                    tone === "neutral" && "text-muted-foreground",
-                  )}
-                >
-                  {item.status}
-                </span>
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

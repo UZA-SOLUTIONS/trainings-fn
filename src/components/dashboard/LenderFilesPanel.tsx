@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { WalletUsagePanel } from "@/components/home/WalletUsagePanel";
 
 const LOAN_STATUSES: LoanReviewStatus[] = [
   "not_ready",
@@ -41,7 +42,7 @@ const LOAN_STATUSES: LoanReviewStatus[] = [
 
 const LOAN_LABELS: Record<string, string> = {
   not_ready: "Not ready",
-  pending: "Pending",
+  pending: "Loan ready",
   in_review: "In review",
   approved: "Approved",
   declined: "Declined",
@@ -127,6 +128,20 @@ function LenderFileDetail({
           </Section>
         )}
 
+        {file.wallet?.financing?.target_vehicle_name && (
+          <Section title="Vehicle">
+            <Field label="EV of choice" value={file.wallet.financing.target_vehicle_name} />
+            <Field
+              label="Selling price"
+              value={`${file.wallet.financing.selling_price_rwf.toLocaleString("en-RW")} RWF`}
+            />
+            <Field
+              label="Driver contribution"
+              value={`${file.wallet.financing.driver_contribution_rwf.toLocaleString("en-RW")} RWF`}
+            />
+          </Section>
+        )}
+
         <Section title="Loan review">
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -165,10 +180,7 @@ function LenderFileDetail({
         </Section>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Wallet, inspections and utilisation appear here once those systems adopt the UZA ID.
-        Until then those sections are omitted — not shown as empty.
-      </p>
+      {file.wallet && <WalletUsagePanel wallet={file.wallet} variant="bank" />}
     </div>
   );
 }

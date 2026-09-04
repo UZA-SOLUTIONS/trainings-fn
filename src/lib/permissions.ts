@@ -48,7 +48,7 @@ export function can(user: StaffUser | null, action: PermissionAction): boolean {
     case "courses.write":
     case "modules.write":
     case "candidates.delete":
-      return user.role === "instructor";
+      return user.role === "admin" || user.role === "instructor";
     case "candidates.read":
       return user.role === "instructor" || user.role === "bank_partner";
     case "candidates.membership":

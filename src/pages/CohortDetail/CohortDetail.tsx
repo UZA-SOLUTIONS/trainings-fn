@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCohort } from "@/services/cohortService";
-import { updateCandidate } from "@/services/candidateService";
+import { deleteCandidate, updateCandidate } from "@/services/candidateService";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ interface Candidate {
   spouse_name?: string | null;
   is_cooperative_member?: boolean | null;
   cooperative_name?: string | null;
+  target_vehicle_name?: string | null;
   target_vehicle_price_rwf?: number | null;
   offers_collateral?: boolean | null;
   collateral_value_rwf?: number | null;
@@ -132,6 +133,7 @@ export default function CohortDetail() {
   const canTraining = can("candidates.training");
   const canDocuments = can("candidates.documents");
   const canLoan = can("candidates.loan");
+  const canDelete = can("candidates.delete");
 
   const { data, isPending } = useQuery({
     queryKey: ["cohort", cohortId],
@@ -151,6 +153,29 @@ export default function CohortDetail() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const remove = useMutation({
+    mutationFn: deleteCandidate,
+    onSuccess: () => {
+      toast.success("Candidate deleted");
+      setOpenId(null);
+      queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
+      queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function confirmDelete(c: Candidate) {
+    if (
+      !window.confirm(
+        `Delete candidate “${c.full_name}” (${c.candidate_code})? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    remove.mutate(c.id);
+  }
 
   const cohort = data?.cohort;
   const candidates = (data?.candidates ?? []) as Candidate[];
@@ -185,6 +210,7 @@ export default function CohortDetail() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead>Candidate</TableHead>
+              <TableHead>EV of choice</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Training</TableHead>
@@ -205,6 +231,16 @@ export default function CohortDetail() {
                         <p className="mt-0.5 font-mono text-sm font-semibold text-primary">
                           {c.candidate_code || "—"}
                         </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="min-w-0 max-w-[12rem]">
+                        <p className="truncate text-sm">{c.target_vehicle_name?.trim() || "—"}</p>
+                        {c.target_vehicle_price_rwf != null && c.target_vehicle_price_rwf > 0 && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {c.target_vehicle_price_rwf.toLocaleString("en-RW")} RWF
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{c.phone ?? "—"}</TableCell>
@@ -237,6 +273,18 @@ export default function CohortDetail() {
                             </SelectContent>
                           </Select>
                         )}
+                        {canDelete && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={remove.isPending}
+                            onClick={() => confirmDelete(c)}
+                          >
+                            Delete
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -249,7 +297,7 @@ export default function CohortDetail() {
                   </TableRow>
                   {open && (
                     <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={6} className="bg-muted/20 p-0">
+                      <TableCell colSpan={7} className="bg-muted/20 p-0">
                         <div className="grid gap-6 border-t border-border/60 p-5 md:grid-cols-3">
                           <Detail title="Identity">
                             <Field label="Candidate ID" value={c.candidate_code} />
