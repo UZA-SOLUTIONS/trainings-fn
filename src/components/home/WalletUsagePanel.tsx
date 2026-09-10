@@ -96,7 +96,7 @@ type CashflowItem = {
   at?: string | null;
 };
 
-const VALUE = "font-display font-light tracking-tight tabular-nums text-foreground";
+const VALUE = "font-display font-medium tracking-tight tabular-nums text-foreground";
 const HIDDEN = "••••••";
 
 function MoneyAmount({
@@ -160,7 +160,7 @@ function BalanceRow({
 }) {
   return (
     <div className="flex flex-nowrap items-center justify-between gap-3 whitespace-nowrap">
-      <span className="min-w-0 shrink truncate font-display text-sm font-light text-muted-foreground sm:text-base">
+      <span className="min-w-0 shrink truncate font-display text-sm font-medium text-muted-foreground sm:text-base">
         {label}
       </span>
       <MoneyAmount
@@ -205,7 +205,7 @@ export function WalletUsagePanel({
         <h3 className={cn(VALUE, "text-2xl sm:text-3xl")}>
           {variant === "bank" ? "Driver UZA wallet" : "Your UZA wallet"}
         </h3>
-        <p className="mt-2 font-display text-base font-light tracking-tight text-foreground sm:text-lg">
+        <p className="mt-2 font-display text-base font-medium tracking-tight text-foreground sm:text-lg">
           EV of choice: {financing.target_vehicle_name?.trim() || "Not selected yet"}
         </p>
       </div>
@@ -245,7 +245,7 @@ export function WalletUsagePanel({
             { label: "Linked phone", value: appNumbers.linked_phone },
           ].map((row) => (
             <div key={row.label}>
-              <dt className="font-display text-sm font-light text-muted-foreground">{row.label}</dt>
+              <dt className="font-display text-sm font-medium text-muted-foreground">{row.label}</dt>
               <dd className={cn(VALUE, "mt-1.5 text-xl sm:text-2xl")}>{row.value || "0"}</dd>
             </div>
           ))}
@@ -258,7 +258,7 @@ export function WalletUsagePanel({
             type="button"
             onClick={() => setTab("income")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-light tracking-tight transition-colors sm:text-base",
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-medium tracking-tight transition-colors sm:text-base",
               tab === "income"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
@@ -276,7 +276,7 @@ export function WalletUsagePanel({
             type="button"
             onClick={() => setTab("expenses")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-light tracking-tight transition-colors sm:text-base",
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-medium tracking-tight transition-colors sm:text-base",
               tab === "expenses"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
@@ -324,7 +324,7 @@ export function WalletUsagePanel({
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-display text-base font-light tracking-tight">{item.label}</p>
+                    <p className="font-display text-base font-medium tracking-tight">{item.label}</p>
                     {item.detail && (
                       <p className="mt-0.5 text-sm text-muted-foreground">{item.detail}</p>
                     )}

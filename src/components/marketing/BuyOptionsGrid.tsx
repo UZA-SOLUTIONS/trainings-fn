@@ -15,7 +15,7 @@ export function BuyOptionsGrid({
         <article
           key={o.tag}
           className={cn(
-            "relative flex w-[85vw] max-w-[21rem] shrink-0 snap-center flex-col overflow-hidden border p-5 sm:w-auto sm:max-w-none sm:shrink sm:p-7 md:p-8",
+            "relative flex w-[85vw] max-w-[21rem] shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] border p-5 sm:w-auto sm:max-w-none sm:shrink sm:rounded-[2rem] sm:p-7 md:p-8",
             o.highlight
               ? "border-primary bg-primary text-primary-foreground lg:-translate-y-2"
               : "border-border/70 bg-background",

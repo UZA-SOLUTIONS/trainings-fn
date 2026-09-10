@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Slider } from "@/components/ui/slider";
 import {
   CASH_DISCOUNT,
@@ -129,18 +128,29 @@ export function FinancingCalculator({
     onOptionChange?.(next);
   }
 
-  const chip = (active: boolean) =>
-    cn(
-      "rounded-full border px-2.5 py-1.5 text-xs font-normal transition-colors sm:px-4 sm:py-2 sm:text-sm",
-      active
-        ? "border-transparent bg-volt text-volt-foreground"
-        : "border-white/25 bg-white/5 text-ink-foreground/80 hover:bg-white/10",
-    );
+  const headline =
+    payOption === "financed"
+      ? {
+          eyebrow: "Daily payment",
+          amount: Math.round(financed.dailyPayment),
+          unit: `RWF / day · ${financed.months} mo`,
+        }
+      : payOption === "cash"
+        ? {
+            eyebrow: "You pay",
+            amount: Math.round(cash.payable),
+            unit: `RWF · ${cash.discountPercent}% off`,
+          }
+        : {
+            eyebrow: "Due now",
+            amount: Math.round(split.now),
+            unit: `RWF · 30% after ${split.discountPercent}% off`,
+          };
 
   return (
-    <Card
+    <div
       className={cn(
-        "relative flex min-h-[min(92vh,52rem)] w-full items-stretch overflow-hidden rounded-none border-x-0 border-y border-white/10 p-0 text-ink-foreground",
+        "relative overflow-hidden rounded-[1.75rem] border border-white/12 text-ink-foreground sm:rounded-[2rem]",
         className,
       )}
     >
@@ -148,18 +158,87 @@ export function FinancingCalculator({
         src="/ev.avif"
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
       />
-      <div className="absolute inset-0 bg-[oklch(0.16_0.04_158)]/78 md:bg-[oklch(0.16_0.04_158)]/72" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,oklch(0.16_0.04_158_/0.94)_0%,oklch(0.18_0.04_158_/0.88)_45%,oklch(0.2_0.03_158_/0.78)_100%)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-80"
+        aria-hidden
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse 55% 45% at 90% 10%, oklch(0.85 0.18 128 / 0.14), transparent 55%),
+            radial-gradient(ellipse 40% 35% at 0% 100%, oklch(0.35 0.06 158 / 0.35), transparent 50%)
+          `,
+        }}
+      />
 
-      <div className="relative z-10 container-page flex w-full flex-1 flex-col justify-center py-12 sm:py-16 md:grid md:min-h-[min(92vh,52rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10 md:py-20 lg:gap-14 lg:py-24">
-        <div className="order-2 space-y-5 border-white/10 sm:space-y-7 md:order-1 md:border-r md:pr-8 lg:pr-12">
+      <div className="relative z-10 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        {/* Result */}
+        <div className="flex flex-col justify-between gap-8 border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10 xl:p-12">
           <div>
-            <p className="text-eyebrow opacity-70">Payment</p>
+            <p className="text-eyebrow text-ink-foreground/55">{headline.eyebrow}</p>
+            <p className="mt-3 font-display text-[2.75rem] font-bold leading-none tracking-tight sm:text-5xl md:text-6xl lg:text-[4.25rem]">
+              {headline.amount.toLocaleString("en-US")}
+            </p>
+            <p className="mt-3 text-sm text-ink-foreground/65 sm:text-base">{headline.unit}</p>
+          </div>
+
+          <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            {payOption === "financed" && (
+              <>
+                <Stat label="Monthly" value={formatRwf(financed.monthlyPayment)} />
+                <Stat label="Financed" value={formatRwf(financed.principal)} />
+                <Stat label="Interest" value={formatRwf(financed.totalInterest)} />
+                <Stat
+                  label="Collateral free"
+                  value={
+                    financed.equityReleaseMonth
+                      ? `Mo ${financed.equityReleaseMonth}`
+                      : "At end"
+                  }
+                />
+                {financed.processingFee > 0 && (
+                  <Stat label="Fee" value={formatRwf(financed.processingFee)} className="hidden sm:block" />
+                )}
+                {financed.annualInsurance > 0 && (
+                  <Stat
+                    label="Insurance / yr"
+                    value={formatRwf(financed.annualInsurance)}
+                    className="hidden sm:block"
+                  />
+                )}
+              </>
+            )}
+
+            {payOption === "cash" && (
+              <>
+                <Stat label="List price" value={formatRwf(vehicleCost)} />
+                <Stat label="Discount" value={`− ${formatRwf(cash.discountAmount)}`} />
+                <Stat label="Due now" value={formatRwf(cash.payable)} className="sm:col-span-2" />
+              </>
+            )}
+
+            {payOption === "split" && (
+              <>
+                <Stat label="List price" value={formatRwf(vehicleCost)} />
+                <Stat label="Discount" value={`− ${formatRwf(split.discountAmount)}`} />
+                <Stat label="Total" value={formatRwf(split.payable)} />
+                <Stat label="On delivery" value={formatRwf(split.onDelivery)} />
+              </>
+            )}
+          </dl>
+
+          <p className="text-xs text-ink-foreground/45">Indicative · {routed.name}</p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col gap-7 p-6 sm:gap-8 sm:p-8 lg:p-10 xl:p-12">
+          <div>
+            <p className="text-eyebrow text-ink-foreground/55">Payment path</p>
             <div
               role="tablist"
               aria-label="Payment option"
-              className="mt-2 grid grid-cols-3 gap-0.5 rounded-full border border-white/20 bg-white/5 p-0.5 sm:mt-3 sm:gap-1 sm:p-1"
+              className="mt-3 grid grid-cols-3 gap-1.5"
             >
               {PAY_OPTIONS.map((value) => {
                 const active = payOption === value;
@@ -171,10 +250,10 @@ export function FinancingCalculator({
                     aria-selected={active}
                     onClick={() => selectPayOption(value)}
                     className={cn(
-                      "rounded-full px-1.5 py-2 text-[11px] font-medium transition-colors sm:px-3 sm:py-2.5 sm:text-sm",
+                      "rounded-2xl border px-2 py-3 text-center text-sm font-medium transition-colors sm:px-3 sm:py-3.5",
                       active
-                        ? "bg-volt text-volt-foreground"
-                        : "text-ink-foreground/70 hover:text-ink-foreground",
+                        ? "border-volt bg-volt text-volt-foreground"
+                        : "border-white/15 bg-white/[0.04] text-ink-foreground/75 hover:border-white/30 hover:bg-white/[0.08] hover:text-ink-foreground",
                     )}
                   >
                     {PAY_OPTION_META[value].label}
@@ -182,38 +261,33 @@ export function FinancingCalculator({
                 );
               })}
             </div>
+            <p className="mt-3 text-sm leading-relaxed text-ink-foreground/60">
+              {PAY_OPTION_META[payOption].description}
+            </p>
           </div>
 
-          <div>
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-eyebrow opacity-70">Vehicle cost</p>
-              <p className="font-display text-base font-semibold tracking-tight sm:text-lg">
-                {formatRwf(vehicleCost, { compact: true })}
-              </p>
-            </div>
+          <ControlBlock
+            label="Vehicle cost"
+            value={formatRwf(vehicleCost, { compact: true })}
+          >
             <Slider
-              className="mt-3 sm:mt-4"
+              className="mt-4"
               value={[vehicleCost]}
               min={8_000_000}
               max={35_000_000}
               step={500_000}
               onValueChange={([v]) => setVehicleCost(v ?? vehicleCost)}
             />
-          </div>
+          </ControlBlock>
 
           {payOption === "financed" && (
             <>
-              <div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-eyebrow opacity-70">Deposit</p>
-                  <p className="font-display text-base font-semibold sm:text-lg">
-                    {depositPercent}%
-                    <span className="mx-1 opacity-40 sm:mx-1.5">·</span>
-                    {formatRwf(financed.clientDeposit, { compact: true })}
-                  </p>
-                </div>
+              <ControlBlock
+                label="Deposit"
+                value={`${depositPercent}% · ${formatRwf(financed.clientDeposit, { compact: true })}`}
+              >
                 <Slider
-                  className="mt-3 sm:mt-4"
+                  className="mt-4"
                   value={[depositPercent]}
                   min={depositMin}
                   max={depositMax}
@@ -221,7 +295,7 @@ export function FinancingCalculator({
                   onValueChange={([v]) => setDepositPercent(v ?? depositPercent)}
                 />
                 {financed.uzaAccessTopUp > 0 || belowRequired ? (
-                  <p className="mt-1.5 text-[11px] opacity-70 sm:mt-2 sm:text-xs">
+                  <p className="mt-2 text-xs text-ink-foreground/55">
                     {financed.uzaAccessTopUp > 0
                       ? `UZA Access +${formatRwf(financed.uzaAccessTopUp, { compact: true })}`
                       : null}
@@ -229,126 +303,82 @@ export function FinancingCalculator({
                     {belowRequired ? `Below ${requiredPercent}% bank minimum` : null}
                   </p>
                 ) : null}
-              </div>
+              </ControlBlock>
 
               <div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-eyebrow opacity-70">Term</p>
-                  <p className="text-xs opacity-70 sm:text-sm">
+                  <p className="text-eyebrow text-ink-foreground/55">Term</p>
+                  <p className="text-sm text-ink-foreground/55">
                     {(financed.annualRate * 100).toFixed(0)}% p.a.
                   </p>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
-                  {terms.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTermYears(t)}
-                      className={chip(termYears === t)}
-                    >
-                      {t} yr
-                    </button>
-                  ))}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {terms.map((t) => {
+                    const active = termYears === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTermYears(t)}
+                        className={cn(
+                          "min-w-[4.25rem] rounded-2xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                          active
+                            ? "border-volt bg-volt text-volt-foreground"
+                            : "border-white/15 bg-white/[0.04] text-ink-foreground/75 hover:border-white/30 hover:bg-white/[0.08]",
+                        )}
+                      >
+                        {t} yr
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </>
           )}
-        </div>
-
-        <div className="order-1 flex min-h-0 flex-col justify-center gap-5 border-b border-white/10 pb-8 sm:gap-7 sm:pb-10 md:order-2 md:min-h-[28rem] md:border-b-0 md:pb-0">
-          {payOption === "financed" && (
-            <>
-              <div>
-                <p className="text-eyebrow opacity-70">Daily payment</p>
-                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
-                  {Math.round(financed.dailyPayment).toLocaleString("en-US")}
-                </p>
-                <p className="mt-1.5 text-xs opacity-70 sm:mt-2 sm:text-sm">
-                  RWF / day · {financed.months} mo
-                </p>
-              </div>
-
-              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
-                <Row label="Monthly" value={formatRwf(financed.monthlyPayment)} />
-                <Row label="Financed" value={formatRwf(financed.principal)} />
-                <Row label="Interest" value={formatRwf(financed.totalInterest)} />
-                {financed.processingFee > 0 && (
-                  <div className="hidden sm:block">
-                    <Row label="Fee" value={formatRwf(financed.processingFee)} />
-                  </div>
-                )}
-                {financed.annualInsurance > 0 && (
-                  <div className="hidden sm:block">
-                    <Row label="Insurance / yr" value={formatRwf(financed.annualInsurance)} />
-                  </div>
-                )}
-                <div className="hidden sm:block">
-                  <Row
-                    label="Collateral free"
-                    value={
-                      financed.equityReleaseMonth
-                        ? `Mo ${financed.equityReleaseMonth}`
-                        : "At end"
-                    }
-                  />
-                </div>
-              </dl>
-            </>
-          )}
-
-          {payOption === "cash" && (
-            <>
-              <div>
-                <p className="text-eyebrow opacity-70">You pay</p>
-                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
-                  {Math.round(cash.payable).toLocaleString("en-US")}
-                </p>
-                <p className="mt-1.5 text-xs opacity-70 sm:mt-1 sm:text-sm">
-                  RWF · {cash.discountPercent}% off
-                </p>
-              </div>
-
-              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
-                <Row label="List price" value={formatRwf(vehicleCost)} />
-                <Row label="Discount" value={`− ${formatRwf(cash.discountAmount)}`} />
-                <Row label="Due now" value={formatRwf(cash.payable)} />
-              </dl>
-            </>
-          )}
-
-          {payOption === "split" && (
-            <>
-              <div>
-                <p className="text-eyebrow opacity-70">Due now</p>
-                <p className="mt-1.5 font-display text-[2.15rem] font-bold leading-none tracking-tight sm:mt-2 sm:text-5xl md:text-6xl">
-                  {Math.round(split.now).toLocaleString("en-US")}
-                </p>
-                <p className="mt-1.5 text-xs opacity-70 sm:mt-1 sm:text-sm">
-                  RWF · 30% after {split.discountPercent}% off
-                </p>
-              </div>
-
-              <dl className="space-y-2 border-t border-white/15 pt-4 text-sm sm:space-y-3 sm:pt-6">
-                <Row label="List price" value={formatRwf(vehicleCost)} />
-                <Row label="Discount" value={`− ${formatRwf(split.discountAmount)}`} />
-                <Row label="Total" value={formatRwf(split.payable)} />
-                <Row label="On delivery" value={formatRwf(split.onDelivery)} />
-              </dl>
-            </>
-          )}
-
-          <p className="text-[11px] opacity-55 sm:text-xs">Indicative · {routed.name}</p>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function ControlBlock({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex items-start justify-between gap-3 sm:gap-6">
-      <dt className="shrink-0 opacity-75">{label}</dt>
-      <dd className="min-w-0 break-words text-right font-display font-semibold tracking-tight">
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-eyebrow text-ink-foreground/55">{label}</p>
+        <p className="font-display text-base font-semibold tracking-tight sm:text-lg">{value}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5",
+        className,
+      )}
+    >
+      <dt className="text-xs text-ink-foreground/50">{label}</dt>
+      <dd className="mt-1 font-display text-base font-semibold tracking-tight sm:text-lg">
         {value}
       </dd>
     </div>

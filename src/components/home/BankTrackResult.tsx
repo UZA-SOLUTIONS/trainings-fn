@@ -114,16 +114,57 @@ export function BankTrackResult({
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Bank portfolio
         </p>
-        <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          {bank.name}
-        </h2>
-        <p className="mt-2 font-mono text-base font-semibold text-primary sm:text-lg">
-          {bank.bank_id}
-        </p>
-        <p className="mt-3 text-base text-muted-foreground">
-          Candidates in cohorts linked to this bank · code {bank.code}
-          {!bank.is_active ? " · inactive" : ""}
-        </p>
+        <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                {bank.name}
+              </h2>
+              <p className="font-mono text-base font-semibold text-primary sm:text-lg">
+                {bank.bank_id}
+              </p>
+            </div>
+            <p className="mt-2 text-base text-muted-foreground">
+              Candidates in cohorts linked to this bank · code {bank.code}
+              {!bank.is_active ? " · inactive" : ""}
+            </p>
+          </div>
+
+          <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:max-w-md lg:justify-end">
+            <div className="relative min-w-0 flex-1">
+              <FiSearch
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={candidateQuery}
+                onChange={(e) => setCandidateQuery(e.target.value.toUpperCase())}
+                placeholder="Search candidate ID, name, phone…"
+                className="h-11 border-border/70 pl-10 font-display tracking-wide"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Filter applicants by candidate ID or details"
+              />
+            </div>
+            {candidateQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 shrink-0"
+                onClick={() => setCandidateQuery("")}
+              >
+                Clear
+              </Button>
+            )}
+            {exactMatch && (
+              <Button asChild className="h-11 shrink-0">
+                <Link to={`/track?id=${encodeURIComponent(exactMatch.candidate_code)}`}>
+                  Open
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -162,53 +203,16 @@ export function BankTrackResult({
       )}
 
       <Card className="overflow-hidden border-border/70">
-        <div className="space-y-4 border-b border-border/60 px-5 py-5 sm:px-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h3 className="font-display text-xl font-bold sm:text-2xl">Applicants</h3>
-              <p className="mt-1 text-muted-foreground">
-                Training, documents, financing, and contact details
-              </p>
-            </div>
-            <p className="text-sm tabular-nums text-muted-foreground">
-              Showing {filtered.length} of {bank.candidates.length}
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/60 px-5 py-5 sm:px-6">
+          <div>
+            <h3 className="font-display text-xl font-bold sm:text-2xl">Applicants</h3>
+            <p className="mt-1 text-muted-foreground">
+              Training, documents, financing, and contact details
             </p>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-1">
-              <FiSearch
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                value={candidateQuery}
-                onChange={(e) => setCandidateQuery(e.target.value.toUpperCase())}
-                placeholder="Search candidate ID (UZA-2026-00001), name, phone…"
-                className="h-11 border-border/70 pl-10 font-display tracking-wide"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label="Filter applicants by candidate ID or details"
-              />
-            </div>
-            {candidateQuery && (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 shrink-0"
-                onClick={() => setCandidateQuery("")}
-              >
-                Clear
-              </Button>
-            )}
-            {exactMatch && (
-              <Button asChild className="h-11 shrink-0">
-                <Link to={`/track?id=${encodeURIComponent(exactMatch.candidate_code)}`}>
-                  Open {exactMatch.candidate_code}
-                </Link>
-              </Button>
-            )}
-          </div>
+          <p className="text-sm tabular-nums text-muted-foreground">
+            Showing {filtered.length} of {bank.candidates.length}
+          </p>
         </div>
 
         <div className="overflow-x-auto">
@@ -308,7 +312,9 @@ export function BankTrackResult({
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
-                      <Link to={`/track?id=${encodeURIComponent(c.candidate_code)}`}>Track</Link>
+                      <Link to={`/track?id=${encodeURIComponent(c.candidate_code)}`}>
+                        Track
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>

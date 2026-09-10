@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
+import { FiLock } from "react-icons/fi";
 import {
   CandidateTrackResult,
   CandidateTrackSearch,
@@ -13,21 +14,31 @@ import {
 } from "@/services/candidateService";
 import { LoadingSpinner } from "@/components/feedback/LoadingSpinner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const NID_STORAGE_PREFIX = "uza-track-nid:";
 
 export default function Track() {
   const [params, setParams] = useSearchParams();
   const lookupId = params.get("id")?.trim().toUpperCase() ?? "";
   const [track, setTrack] = useState<CandidateTrackView | null>(null);
   const [bank, setBank] = useState<BankTrackView | null>(null);
+  const [needsNationalId, setNeedsNationalId] = useState(false);
+  const [nationalId, setNationalId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [candidateFilter, setCandidateFilter] = useState("");
 
   useEffect(() => {
     if (!lookupId) {
       setTrack(null);
       setBank(null);
+      setNeedsNationalId(false);
+      setNationalId("");
       setError(null);
+      setConfirmError(null);
       setLoading(false);
       setCandidateFilter("");
       return;
@@ -36,17 +47,34 @@ export default function Track() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setConfirmError(null);
     setCandidateFilter("");
+    setNeedsNationalId(false);
+    setTrack(null);
+    setBank(null);
 
-    trackLookup(lookupId)
+    const storageKey = `${NID_STORAGE_PREFIX}${lookupId}`;
+    const storedNid = sessionStorage.getItem(storageKey) ?? "";
+    if (storedNid) {
+      sessionStorage.removeItem(storageKey);
+      setNationalId(storedNid);
+    }
+
+    trackLookup(lookupId, storedNid ? { nationalId: storedNid } : undefined)
       .then((result) => {
         if (cancelled) return;
         if (result.type === "bank") {
           setBank(result.bank);
           setTrack(null);
+          setNeedsNationalId(false);
+        } else if (result.type === "candidate_challenge") {
+          setNeedsNationalId(true);
+          setTrack(null);
+          setBank(null);
         } else {
           setTrack(result.track);
           setBank(null);
+          setNeedsNationalId(false);
         }
         setError(null);
       })
@@ -54,6 +82,7 @@ export default function Track() {
         if (!cancelled) {
           setTrack(null);
           setBank(null);
+          setNeedsNationalId(false);
           setError(friendlyTrackError(err));
         }
       })
@@ -66,27 +95,51 @@ export default function Track() {
     };
   }, [lookupId]);
 
-  function handleSearch(code: string) {
-    setParams({ id: code.trim().toUpperCase() });
+  function handleLookup({ code, nationalId: nid }: { code: string; nationalId?: string }) {
+    const next = code.trim().toUpperCase();
+    if (nid?.trim()) {
+      sessionStorage.setItem(`${NID_STORAGE_PREFIX}${next}`, nid.trim());
+    }
+    setNationalId(nid?.trim() ?? "");
+    setParams({ id: next });
   }
 
-  function handleCandidateSubmit(code: string) {
-    const match = bank?.candidates.find(
-      (c) => c.candidate_code.toUpperCase() === code.trim().toUpperCase(),
-    );
-    if (match) {
-      setParams({ id: match.candidate_code });
+  async function handleConfirmNationalId(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = nationalId.trim();
+    if (!trimmed) {
+      setConfirmError("Enter your national ID to confirm.");
       return;
     }
-    // Still navigate — track page will resolve or show not found
-    setParams({ id: code.trim().toUpperCase() });
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      const result = await trackLookup(lookupId, { nationalId: trimmed });
+      if (result.type === "candidate") {
+        setTrack(result.track);
+        setNeedsNationalId(false);
+        setBank(null);
+        setError(null);
+      } else if (result.type === "candidate_challenge") {
+        setConfirmError("Confirm with your national ID to view this application.");
+      } else {
+        setConfirmError("Unexpected response. Try again.");
+      }
+    } catch (err) {
+      setConfirmError(friendlyTrackError(err));
+    } finally {
+      setConfirming(false);
+    }
   }
 
   function clearSearch() {
     setParams({});
     setTrack(null);
     setBank(null);
+    setNeedsNationalId(false);
+    setNationalId("");
     setError(null);
+    setConfirmError(null);
     setCandidateFilter("");
   }
 
@@ -115,11 +168,8 @@ export default function Track() {
           <CandidateTrackSearch
             variant="page"
             defaultCode={lookupId}
-            onSubmitCode={handleSearch}
-            showCandidateField={Boolean(bank) && !loading && !error}
-            candidateCode={candidateFilter}
-            onCandidateCodeChange={setCandidateFilter}
-            onCandidateSubmit={handleCandidateSubmit}
+            defaultNationalId={nationalId}
+            onSubmitLookup={handleLookup}
           />
         </div>
       </section>
@@ -140,8 +190,56 @@ export default function Track() {
           </div>
         )}
 
-        {!loading && !error && track && <CandidateTrackResult track={track} />}
-        {!loading && !error && bank && (
+        {!loading && !error && needsNationalId && (
+          <div className="mx-auto max-w-md rounded-[1.75rem] border border-border/70 bg-background p-6 sm:rounded-[2rem] sm:p-8">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <FiLock className="size-5" strokeWidth={1.75} aria-hidden />
+            </div>
+            <h2 className="mt-4 font-display text-xl font-bold tracking-tight sm:text-2xl">
+              Confirm it&apos;s you
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              We found <span className="font-mono font-medium text-foreground">{lookupId}</span>.
+              Enter the national ID from the application to open the record.
+            </p>
+            <form onSubmit={handleConfirmNationalId} className="mt-6 space-y-4">
+              <div>
+                <label
+                  htmlFor="track-national-id"
+                  className="mb-1.5 block text-xs font-medium text-muted-foreground"
+                >
+                  National ID
+                </label>
+                <Input
+                  id="track-national-id"
+                  value={nationalId}
+                  onChange={(e) => setNationalId(e.target.value)}
+                  placeholder="As on the national ID"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="font-display tracking-wide"
+                  autoFocus
+                />
+              </div>
+              {confirmError && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {confirmError}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={confirming} className="shadow-none">
+                  {confirming ? "Checking…" : "Confirm and view"}
+                </Button>
+                <Button type="button" variant="outline" onClick={clearSearch} className="shadow-none">
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {!loading && !error && !needsNationalId && track && <CandidateTrackResult track={track} />}
+        {!loading && !error && !needsNationalId && bank && (
           <BankTrackResult
             bank={bank}
             filterQuery={candidateFilter}
@@ -149,9 +247,9 @@ export default function Track() {
           />
         )}
 
-        {!loading && !error && !track && !bank && !lookupId && (
+        {!loading && !error && !track && !bank && !needsNationalId && !lookupId && (
           <p className="text-center text-sm text-muted-foreground">
-            Enter a candidate ID or bank ID to view progress.
+            Enter a bank ID to open a portfolio, or a candidate ID plus national ID to view details.
           </p>
         )}
       </section>

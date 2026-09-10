@@ -51,9 +51,9 @@ export function FinancingSection({ option, onOptionChange }: FinancingSectionPro
               from your partner bank.
             </p>
           </div>
-        </div>
-        <div className="mt-7 sm:mt-10">
-          <FinancingCalculator option={option} onOptionChange={onOptionChange} />
+          <div className="mt-7 sm:mt-10">
+            <FinancingCalculator option={option} onOptionChange={onOptionChange} />
+          </div>
         </div>
       </div>
     </section>

@@ -15,10 +15,10 @@ const MILESTONE_COLORS: Record<TrackMilestoneStatus, string> = {
 };
 
 const VALUE =
-  "font-display font-light tracking-tight tabular-nums text-foreground";
+  "font-display font-medium tracking-tight tabular-nums text-foreground";
 const VALUE_LG = cn(VALUE, "text-4xl leading-none sm:text-5xl");
 const VALUE_MD = cn(VALUE, "text-xl sm:text-2xl");
-const NAME = "font-display font-light tracking-tight text-foreground";
+const NAME = "font-display font-medium tracking-tight text-foreground";
 
 function milestoneProgressPercent(milestones: CandidateTrackView["milestones"]) {
   if (!milestones.length) return 0;
@@ -79,7 +79,7 @@ function AnalysisKpi({
           <div className="mt-3 flex items-end gap-2">
             <p className={cn(VALUE_LG, toneClass(tone))}>{value}</p>
             {unit && (
-              <span className="pb-1 font-display text-base font-light text-muted-foreground sm:text-lg">
+              <span className="pb-1 font-display text-base font-medium text-muted-foreground sm:text-lg">
                 {unit}
               </span>
             )}
@@ -420,7 +420,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-primary/25 bg-primary/[0.06] px-4 py-5">
-            <p className="font-display text-base font-light text-muted-foreground">
+            <p className="font-display text-base font-medium text-muted-foreground">
               Deposit offered
             </p>
             <p className={cn(VALUE_LG, "mt-2 text-primary")}>
@@ -435,7 +435,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
                 : "border-primary/25 bg-primary/[0.06]",
             )}
           >
-            <p className="font-display text-base font-light text-muted-foreground">
+            <p className="font-display text-base font-medium text-muted-foreground">
               Remaining to 10%
             </p>
             <p
@@ -449,7 +449,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-5">
-            <p className="font-display text-base font-light text-muted-foreground">
+            <p className="font-display text-base font-medium text-muted-foreground">
               Bank pays (remaining)
             </p>
             <p className={cn(VALUE_LG, "mt-2")}>

@@ -302,21 +302,34 @@ export type BankTrackView = {
 
 export type TrackLookupResult =
   | { type: "candidate"; track: CandidateTrackView }
-  | { type: "bank"; bank: BankTrackView };
+  | { type: "bank"; bank: BankTrackView }
+  | { type: "candidate_challenge"; candidate_code: string };
 
-export async function trackLookup(code: string): Promise<TrackLookupResult> {
+export async function trackLookup(
+  code: string,
+  options?: { nationalId?: string },
+): Promise<TrackLookupResult> {
   const normalized = code.trim().toUpperCase();
+  const params = new URLSearchParams();
+  if (options?.nationalId?.trim()) {
+    params.set("national_id", options.nationalId.trim());
+  }
+  const qs = params.toString();
   const { data } = await api.get<
     ApiResponse<
       | { type: "candidate"; track: CandidateTrackView }
       | { type: "bank"; bank: BankTrackView }
+      | { type: "candidate_challenge"; candidate_code: string }
       | { track: CandidateTrackView }
     >
-  >(`/candidates/track/${encodeURIComponent(normalized)}`);
+  >(`/candidates/track/${encodeURIComponent(normalized)}${qs ? `?${qs}` : ""}`);
 
   const payload = data.data;
   if ("type" in payload && payload.type === "bank") {
     return { type: "bank", bank: payload.bank };
+  }
+  if ("type" in payload && payload.type === "candidate_challenge") {
+    return { type: "candidate_challenge", candidate_code: payload.candidate_code };
   }
   if ("type" in payload && payload.type === "candidate") {
     return { type: "candidate", track: payload.track };

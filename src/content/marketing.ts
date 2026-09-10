@@ -33,24 +33,11 @@ export const PROGRAMME_STEPS = [
   },
 ] as const;
 
-export const HOME_HERO_SLIDES = [
-  {
-    src: "/bg.jpg",
-    alt: "Electric taxi on a Kigali street at golden hour",
-    title: "Own the EV you drive.",
-    body: "UZA trains taxi drivers, helps you prepare bank documents and a deposit, then finances and delivers an electric vehicle. Everything is tracked under one UZA ID from application to your door.",
-    cta: "See what you'd pay",
-    ctaHref: "/#financing",
-  },
-  {
-    src: "/1.jpg",
-    alt: "UZA Mobility electric vehicle",
-    title: "One ID. Every step.",
-    body: "From cohort training and document upload to bank review, vehicle allocation, and shipment, driver, bank, and UZA follow the same record so nothing gets lost between offices.",
-    cta: "Track your ID",
-    ctaHref: "/track",
-  },
-] as const;
+export const HOME_HERO = {
+  src: "/1.jpg",
+  alt: "UZA Mobility electric vehicle",
+  title: "One ID. Every step.",
+} as const;
 
 export const PATH_STEP_IMAGES = [
   "/1.jpg",

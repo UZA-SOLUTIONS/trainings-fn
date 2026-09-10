@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FiDownload, FiSearch } from "react-icons/fi";
 import {
   trackLookup,
@@ -70,9 +70,9 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
   const docsOptional = track.documents.filter((d) => !d.complete && !d.required);
 
   const valueLg =
-    "font-display text-4xl font-light leading-none tracking-tight tabular-nums sm:text-5xl";
-  const valueMd = "font-display text-xl font-light tracking-tight tabular-nums sm:text-2xl";
-  const nameText = "font-display font-light tracking-tight text-foreground";
+    "font-display text-4xl font-semibold leading-none tracking-tight tabular-nums sm:text-5xl";
+  const valueMd = "font-display text-xl font-medium tracking-tight tabular-nums sm:text-2xl";
+  const nameText = "font-display font-medium tracking-tight text-foreground";
 
   const isCertified =
     track.training.status === "completed" || track.status === "graduated";
@@ -90,7 +90,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               type="button"
               variant="outline"
               size="sm"
-              className="gap-2 font-display font-light"
+              className="gap-2 font-display font-medium"
               onClick={() => {
                 try {
                   downloadTrackReportPdf(track);
@@ -106,7 +106,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
             <Badge
               variant={isCertified ? "default" : "secondary"}
               className={cn(
-                "px-3 py-1 text-sm font-light",
+                "px-3 py-1 text-sm font-medium",
                 isCertified
                   ? "bg-primary text-primary-foreground"
                   : "border border-destructive/30 bg-destructive/10 text-destructive",
@@ -118,7 +118,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               variant={
                 track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
               }
-              className="px-3 py-1 text-sm font-light"
+              className="px-3 py-1 text-sm font-medium"
             >
               {STATUS_LABELS[track.status] ?? track.status}
               {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
@@ -444,7 +444,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
               <span
                 key={d.key}
                 className={cn(
-                  "inline-flex max-w-full items-center rounded-lg border px-2.5 py-1.5 font-display text-xs font-light tracking-tight sm:text-sm",
+                  "inline-flex max-w-full items-center rounded-lg border px-2.5 py-1.5 font-display text-xs font-medium tracking-tight sm:text-sm",
                   tone,
                 )}
                 title={d.label}
@@ -462,62 +462,79 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
 type SearchProps = {
   variant?: "hero" | "section" | "page";
   onResult?: (track: CandidateTrackView) => void;
+  /** Called with ID (+ national ID for personal candidates). */
+  onSubmitLookup?: (payload: { code: string; nationalId?: string }) => void;
+  /** @deprecated Prefer onSubmitLookup */
   onSubmitCode?: (code: string) => void;
   defaultCode?: string;
-  /** When true (e.g. after a bank ID lookup), show a second candidate-ID field */
-  showCandidateField?: boolean;
-  candidateCode?: string;
-  onCandidateCodeChange?: (code: string) => void;
-  onCandidateSubmit?: (code: string) => void;
+  defaultNationalId?: string;
 };
+
+const CANDIDATE_ID_RE = /^UZA-\d{4}-\d{5}$/i;
+const BANK_ID_RE = /^UZA-BANK-\d{4}-\d{5}$/i;
 
 export function CandidateTrackSearch({
   variant = "section",
   onResult,
+  onSubmitLookup,
   onSubmitCode,
   defaultCode = "",
-  showCandidateField = false,
-  candidateCode = "",
-  onCandidateCodeChange,
-  onCandidateSubmit,
+  defaultNationalId = "",
 }: SearchProps) {
   const [code, setCode] = useState(defaultCode);
+  const [nationalId, setNationalId] = useState(defaultNationalId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const candidateInputRef = useRef<HTMLInputElement>(null);
 
   const isHero = variant === "hero";
   const isPage = variant === "page";
   const onDark = isHero || isPage;
+  const trimmedCode = code.trim().toUpperCase();
+  const looksLikeCandidate = CANDIDATE_ID_RE.test(trimmedCode);
+  const looksLikeBank = BANK_ID_RE.test(trimmedCode);
+  const needsNationalId = looksLikeCandidate && !looksLikeBank;
 
   useEffect(() => {
     if (defaultCode) setCode(defaultCode);
   }, [defaultCode]);
 
   useEffect(() => {
-    if (showCandidateField) {
-      const t = window.setTimeout(() => candidateInputRef.current?.focus(), 80);
-      return () => window.clearTimeout(t);
-    }
-  }, [showCandidateField]);
+    if (defaultNationalId) setNationalId(defaultNationalId);
+  }, [defaultNationalId]);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = code.trim();
+    const trimmed = code.trim().toUpperCase();
     if (!trimmed) {
       setError("Enter a candidate ID or bank ID.");
       return;
     }
+
+    const isCandidate = CANDIDATE_ID_RE.test(trimmed) && !BANK_ID_RE.test(trimmed);
+    const nid = nationalId.trim();
+    if (isCandidate && !nid) {
+      setError("Enter the national ID linked to this candidate ID to confirm.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
+      if (onSubmitLookup) {
+        onSubmitLookup({ code: trimmed, nationalId: isCandidate ? nid : undefined });
+        return;
+      }
       if (onSubmitCode) {
         onSubmitCode(trimmed);
         return;
       }
-      const result = await trackLookup(trimmed);
+      const result = await trackLookup(trimmed, isCandidate ? { nationalId: nid } : undefined);
       if (result.type === "bank") {
         window.location.assign(`/track?id=${encodeURIComponent(trimmed)}`);
+        return;
+      }
+      if (result.type === "candidate_challenge") {
+        setError("Enter the national ID linked to this candidate ID to confirm.");
         return;
       }
       onResult?.(result.track);
@@ -526,13 +543,6 @@ export function CandidateTrackSearch({
     } finally {
       setBusy(false);
     }
-  }
-
-  function handleCandidateSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = candidateCode.trim().toUpperCase();
-    if (!trimmed) return;
-    onCandidateSubmit?.(trimmed);
   }
 
   const fieldShell = cn(
@@ -561,24 +571,11 @@ export function CandidateTrackSearch({
       >
         Look up a candidate or bank ID.
       </p>
-      {isHero && (
-        <p className="mt-1.5 text-[11px] leading-snug text-ink-foreground/65 sm:text-xs">
-          Candidate or bank ID · training, docs, financing.
-        </p>
-      )}
 
       <form
         onSubmit={handleSearch}
-        className={cn(isHero && "mt-3.5", isPage && "mt-8 max-w-xl", !onDark && "mt-8 max-w-xl")}
+        className={cn(isHero && "mt-3.5 space-y-3", isPage && "mt-8 max-w-xl space-y-3", !onDark && "mt-8 max-w-xl space-y-3")}
       >
-        <label
-          className={cn(
-            "mb-1.5 block text-xs font-medium",
-            onDark ? "text-ink-foreground/55" : "text-muted-foreground",
-          )}
-        >
-          Bank or candidate ID
-        </label>
         <div className={fieldShell}>
           <div className="relative min-w-0 flex-1">
             <FiSearch
@@ -591,7 +588,8 @@ export function CandidateTrackSearch({
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="UZA-BANK-2026-00001"
+              placeholder="UZA-2026-00001 or UZA-BANK-…"
+              aria-label="Bank or candidate ID"
               className={cn(
                 "h-10 w-full border-0 bg-transparent pl-10 font-display tracking-wide shadow-none focus-visible:ring-0",
                 isPage && "h-11 text-base",
@@ -603,50 +601,32 @@ export function CandidateTrackSearch({
               spellCheck={false}
             />
           </div>
-          <Button
-            type="submit"
-            size="sm"
-            className={cn(
-              "h-10 shrink-0 px-5 shadow-none",
-              isPage && "h-11 px-6 text-base",
-              onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
-            )}
-            disabled={busy}
-          >
-            {busy ? "…" : "Search"}
-          </Button>
+          {!needsNationalId && (
+            <Button
+              type="submit"
+              size="sm"
+              className={cn(
+                "h-10 shrink-0 px-5 shadow-none",
+                isPage && "h-11 px-6 text-base",
+                onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
+              )}
+              disabled={busy}
+            >
+              {busy ? "…" : "Search"}
+            </Button>
+          )}
         </div>
-      </form>
 
-      {showCandidateField && (
-        <form
-          onSubmit={handleCandidateSearch}
-          className={cn("mt-3 max-w-xl animate-in fade-in slide-in-from-top-1 duration-200")}
-        >
-          <label
-            className={cn(
-              "mb-1.5 block text-xs font-medium",
-              onDark ? "text-volt" : "text-primary",
-            )}
-          >
-            Search candidate ID in this bank
-          </label>
+        {needsNationalId && (
           <div className={fieldShell}>
             <div className="relative min-w-0 flex-1">
-              <FiSearch
-                className={cn(
-                  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4",
-                  onDark ? "text-ink-foreground/50" : "text-muted-foreground",
-                )}
-                aria-hidden
-              />
               <Input
-                ref={candidateInputRef}
-                value={candidateCode}
-                onChange={(e) => onCandidateCodeChange?.(e.target.value.toUpperCase())}
-                placeholder="UZA-2026-00001"
+                value={nationalId}
+                onChange={(e) => setNationalId(e.target.value)}
+                placeholder="National ID to confirm"
+                aria-label="National ID"
                 className={cn(
-                  "h-10 w-full border-0 bg-transparent pl-10 font-display tracking-wide shadow-none focus-visible:ring-0",
+                  "h-10 w-full border-0 bg-transparent px-3 font-display tracking-wide shadow-none focus-visible:ring-0",
                   isPage && "h-11 text-base",
                   onDark
                     ? "text-ink-foreground placeholder:text-ink-foreground/40"
@@ -654,26 +634,23 @@ export function CandidateTrackSearch({
                 )}
                 autoComplete="off"
                 spellCheck={false}
-                aria-label="Search candidate ID within bank portfolio"
               />
             </div>
             <Button
               type="submit"
               size="sm"
-              variant="outline"
               className={cn(
                 "h-10 shrink-0 px-5 shadow-none",
                 isPage && "h-11 px-6 text-base",
-                onDark
-                  ? "border-white/30 bg-white/10 text-ink-foreground hover:bg-white/15"
-                  : "",
+                onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
               )}
+              disabled={busy}
             >
-              Find
+              {busy ? "…" : "Confirm"}
             </Button>
           </div>
-        </form>
-      )}
+        )}
+      </form>
 
       {error && (
         <p

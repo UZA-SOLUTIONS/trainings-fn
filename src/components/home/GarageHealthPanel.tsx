@@ -71,7 +71,7 @@ export type GaragePreview = {
   }>;
 };
 
-const VALUE = "font-display font-light tracking-tight tabular-nums text-foreground";
+const VALUE = "font-display font-medium tracking-tight tabular-nums text-foreground";
 
 const HEALTH_STATUS: Record<string, string> = {
   unknown: "Awaiting garage",
@@ -103,7 +103,7 @@ function MetricRows({
     <dl className="mt-3 divide-y divide-border/60 border-t border-border/60">
       {rows.map((row) => (
         <div key={row.label} className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="font-display text-sm font-light text-muted-foreground sm:text-base">
+          <dt className="font-display text-sm font-medium text-muted-foreground sm:text-base">
             {row.label}
           </dt>
           <dd
@@ -153,7 +153,7 @@ export function GarageHealthPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className={cn(VALUE, "text-2xl sm:text-3xl")}>Car health & diagnosis</h3>
-          <p className="mt-2 font-display text-base font-light tracking-tight text-foreground sm:text-lg">
+          <p className="mt-2 font-display text-base font-medium tracking-tight text-foreground sm:text-lg">
             EV of choice: {model || "Not selected yet"}
             {vehicle.plate ? ` · ${vehicle.plate}` : ""}
           </p>
@@ -163,7 +163,7 @@ export function GarageHealthPanel({
             </p>
           ) : null}
         </div>
-        <span className="rounded-full bg-volt/15 px-3 py-1 font-display text-xs font-light uppercase tracking-wide text-foreground">
+        <span className="rounded-full bg-volt/15 px-3 py-1 font-display text-xs font-medium uppercase tracking-wide text-foreground">
           {garage.live ? "Live from garage" : "Awaiting garage"}
         </span>
       </div>
@@ -324,7 +324,7 @@ export function GarageHealthPanel({
               key={row.label}
               className="flex items-baseline justify-between gap-3 border-t border-border/60 py-2.5"
             >
-              <dt className="font-display text-sm font-light text-muted-foreground">
+              <dt className="font-display text-sm font-medium text-muted-foreground">
                 {row.label}
               </dt>
               <dd className={cn(VALUE, "text-base sm:text-lg")}>{row.value}</dd>
@@ -346,7 +346,7 @@ export function GarageHealthPanel({
                 className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-sm font-light tracking-tight sm:text-base">
+                  <p className="font-display text-sm font-medium tracking-tight sm:text-base">
                     {u.title}
                   </p>
                   {u.detail && (
@@ -359,7 +359,7 @@ export function GarageHealthPanel({
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 font-display text-xs font-light uppercase tracking-wide",
+                    "shrink-0 font-display text-xs font-medium uppercase tracking-wide",
                     u.severity === "critical" && "text-destructive",
                     u.severity === "watch" && "text-foreground",
                     u.severity === "info" && "text-muted-foreground",
