@@ -168,7 +168,7 @@ export function TrackVisualDashboard({
   const garageScore = garage.health?.overall_score ?? 0;
 
   return (
-    <div className={cn(embedded ? "border-t border-border/40 p-5 sm:p-6" : "space-y-8")}>
+    <div className={cn(embedded ? "p-5 sm:p-6" : "space-y-8")}>
       <div className={cn(!embedded && "space-y-8", embedded && "space-y-6")}>
       <div>
         <h3 className={cn(NAME, embedded ? "font-display text-base font-semibold text-primary sm:text-lg" : "text-xl sm:text-2xl")}>

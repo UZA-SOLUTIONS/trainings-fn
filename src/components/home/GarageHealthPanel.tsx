@@ -395,7 +395,7 @@ export function GarageHealthPanel({
   );
 
   if (embedded) {
-    return <div className="border-t border-border/40 p-5 sm:p-6">{body}</div>;
+    return <div className="p-5 sm:p-6">{body}</div>;
   }
 
   return <Card className="border-border/70 p-6 sm:p-8">{body}</Card>;

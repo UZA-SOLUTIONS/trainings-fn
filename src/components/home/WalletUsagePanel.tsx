@@ -181,7 +181,7 @@ export function WalletUsagePanel({
 
   const body = (
     <div className="grid lg:grid-cols-2">
-      <div className="border-b border-border/40 p-5 sm:p-6 lg:border-b-0">
+      <div className="p-5 sm:p-6 lg:border-b-0">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="flex items-center gap-2 font-display text-base font-semibold text-primary sm:text-lg">
             <FiCreditCard className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -344,7 +344,7 @@ export function WalletUsagePanel({
   );
 
   if (embedded) {
-    return <div className="border-t border-border/40">{body}</div>;
+    return <div>{body}</div>;
   }
 
   return (

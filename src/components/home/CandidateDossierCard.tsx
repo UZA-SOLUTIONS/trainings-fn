@@ -113,8 +113,8 @@ export function CandidateDossierCard({
   }
 
   return (
-    <div className="overflow-hidden border-2 border-primary/50 bg-background shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-primary/25 px-4 py-3.5 sm:px-5">
+    <div className="overflow-hidden bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
         <div className="flex flex-wrap items-center gap-3 text-primary">
           <div className="flex items-center gap-2.5">
             <FiFileText className="size-6 shrink-0" strokeWidth={1.75} aria-hidden />

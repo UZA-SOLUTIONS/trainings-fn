@@ -104,7 +104,7 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
         </div>
       }
     >
-      <div className="border-t border-border/40 p-5 sm:p-6">
+      <div className="p-5 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="py-2">
             <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
