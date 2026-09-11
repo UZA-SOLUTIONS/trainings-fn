@@ -13,10 +13,8 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const staffToken = localStorage.getItem(TOKEN_KEY);
+  if (staffToken) config.headers.Authorization = `Bearer ${staffToken}`;
   return config;
 });
 

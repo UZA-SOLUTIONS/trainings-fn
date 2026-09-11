@@ -33,11 +33,32 @@ export const PROGRAMME_STEPS = [
   },
 ] as const;
 
-export const HOME_HERO = {
-  src: "/1.jpg",
-  alt: "UZA Mobility electric vehicle",
-  title: "One ID. Every step.",
-} as const;
+export const HOME_HERO_SLIDES = [
+  {
+    src: "/1.jpg",
+    alt: "UZA Mobility electric vehicle on the road",
+    title: "One ID. Every step.",
+    subtitle: "Track your application from training to delivery",
+    primary: { label: "Track your ID", href: "/track" },
+    secondary: { label: "How it works", href: "/#path" },
+  },
+  {
+    src: "/bg.jpg",
+    alt: "Electric taxi on a city street",
+    title: "Own the EV you drive.",
+    subtitle: "Apply for training and start your path to ownership",
+    primary: { label: "Apply now", href: "/apply" },
+    secondary: { label: "See financing", href: "/#financing" },
+  },
+  {
+    src: "/hero.avif",
+    alt: "UZA electric fleet",
+    title: "Train. Finance. Deliver.",
+    subtitle: "Check requirements before you start",
+    primary: { label: "View requirements", href: "/requirements" },
+    secondary: { label: "Track your ID", href: "/track" },
+  },
+] as const;
 
 export const PATH_STEP_IMAGES = [
   "/1.jpg",
@@ -50,6 +71,7 @@ export const PATH_STEP_IMAGES = [
 
 export const BUY_OPTIONS = [
   {
+    slug: "pay-in-full",
     tag: "Cash",
     option: "cash" as PayOption,
     discount: "3%",
@@ -58,8 +80,11 @@ export const BUY_OPTIONS = [
     body: "Full payment before the container sails earns a 3% discount off vehicle cost, applied at invoice.",
     points: ["Full payment before sailing", "Discount applied at invoice", "Fastest path to ownership"],
     highlight: true,
+    image: "/buy-cash-ev.png",
+    imageAlt: "Electric taxi on wet asphalt at dusk",
   },
   {
+    slug: "split",
     tag: "Split",
     option: "split" as PayOption,
     discount: "1.5%",
@@ -68,8 +93,11 @@ export const BUY_OPTIONS = [
     body: "Lock your unit with 30%, settle the balance when the vehicle is handed over. Discount applies to the full price.",
     points: ["30% to reserve your unit", "70% due on delivery", "Discount on full price"],
     highlight: false,
+    image: "/buy-split-ev.png",
+    imageAlt: "Electric taxi ready for delivery handover",
   },
   {
+    slug: "bank-financed",
     tag: "Financed",
     option: "financed" as PayOption,
     discount: "500K",
@@ -78,8 +106,16 @@ export const BUY_OPTIONS = [
     body: "The minimum driver contribution. The bank lends the rest; UZA Access can bridge the gap to the required deposit.",
     points: ["From 500,000 RWF deposit", "Bank finances the balance", "UZA Access top-up available"],
     highlight: false,
+    image: "/buy-financed-ev.png",
+    imageAlt: "Modern electric taxi cabin with glowing display",
   },
 ] as const;
+
+export type BuyOptionSlug = (typeof BUY_OPTIONS)[number]["slug"];
+
+export function getBuyOptionBySlug(slug: string) {
+  return BUY_OPTIONS.find((o) => o.slug === slug) ?? null;
+}
 
 export const SHARED_RECORD = [
   "UZA ID",
@@ -98,16 +134,58 @@ export const PARTNER_PORTALS = [
   {
     title: "Driver",
     lens: "What I owe and what comes next",
-    points: ["Document checklist", "Daily payment view", "Allocation + shipment inbox"],
+    image: "/viewpoint-driver-ev.png",
+    imageAlt: "Electric taxi ready for the driver",
+    cta: { label: "Track ID", href: "/track" },
   },
   {
     title: "Bank",
     lens: "Risk, equity, and cohort readiness",
-    points: ["Cohort folders", "UZA Access-supported flag", "Equity and collateral status"],
+    image: "/viewpoint-bank-ev.png",
+    imageAlt: "Electric vehicle for bank financing review",
+    cta: { label: "Financing", href: "/#financing" },
   },
   {
     title: "UZA operations",
     lens: "Fleet flow from container to door",
-    points: ["Container manifests", "Driver-to-vehicle linking", "Weekly tracking updates"],
+    image: "/viewpoint-ops-ev.png",
+    imageAlt: "Electric fleet lined up for allocation and delivery",
+    cta: { label: "How it works", href: "/#path" },
   },
 ] as const;
+
+export const EXPO_STORIES = [
+  {
+    slug: "launch",
+    label: "Featured stories",
+    title: "UZA Mobility goes live at the expo",
+    body: "We introduced the programme on the floor, walking taxi drivers through training, financing, and the path to an EV.",
+    cta: { label: "Read the story", href: "/news/launch" },
+    image: "/news.jpg",
+    imageAlt: "UZA Mobility booth at the mobility expo",
+  },
+  {
+    slug: "drivers",
+    label: "Featured stories",
+    title: "Taxi drivers step into ownership",
+    body: "Drivers signed interest, asked about deposits, and saw how a shared UZA ID follows them from training to delivery.",
+    cta: { label: "See how it works", href: "/news/drivers" },
+    image: "/news2.jpg",
+    imageAlt: "Taxi drivers engaging at the UZA Mobility expo stand",
+  },
+  {
+    slug: "banks",
+    label: "Featured stories",
+    title: "Banks on the floor with us",
+    body: "Partner banks joined conversations on risk, deposits, and UZA Access so drivers could fund the car they will drive.",
+    cta: { label: "Explore financing", href: "/news/banks" },
+    image: "/news3.jpg",
+    imageAlt: "Electric taxis and bank-funded ownership conversations at the expo",
+  },
+] as const;
+
+export type ExpoStorySlug = (typeof EXPO_STORIES)[number]["slug"];
+
+export function getExpoStoryBySlug(slug: string) {
+  return EXPO_STORIES.find((s) => s.slug === slug) ?? null;
+}

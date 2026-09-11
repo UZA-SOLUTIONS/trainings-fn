@@ -13,6 +13,7 @@ const HOME_HASHES = new Set([
   "calculator",
   "partners",
   "partner-banks",
+  "news",
 ]);
 
 function isPayOption(v: string | null): v is PayOption {

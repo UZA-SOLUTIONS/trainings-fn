@@ -6,7 +6,7 @@ export function PartnerBankLogos() {
     <div
       id="partner-banks"
       aria-labelledby="partner-banks-heading"
-      className="scroll-mt-20 border-t border-border/50 bg-muted/25 py-14 sm:py-16 md:py-20"
+      className="scroll-mt-20 border-t border-border/50 bg-background py-14 sm:py-16 md:py-20"
     >
       <div className="container-page">
         <h2
@@ -21,7 +21,7 @@ export function PartnerBankLogos() {
               <img
                 src={bank.logo}
                 alt={bank.name}
-                className="h-16 w-auto max-w-[14rem] object-contain sm:h-20 sm:max-w-[18rem] md:h-24 md:max-w-[20rem]"
+                className="h-16 w-auto max-w-[14rem] bg-transparent object-contain mix-blend-multiply sm:h-20 sm:max-w-[18rem] md:h-24 md:max-w-[20rem]"
               />
             </li>
           ))}

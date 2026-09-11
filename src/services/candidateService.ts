@@ -302,39 +302,36 @@ export type BankTrackView = {
 
 export type TrackLookupResult =
   | { type: "candidate"; track: CandidateTrackView }
-  | { type: "bank"; bank: BankTrackView }
-  | { type: "candidate_challenge"; candidate_code: string };
+  | { type: "bank"; bank: BankTrackView };
 
-export async function trackLookup(
-  code: string,
-  options?: { nationalId?: string },
-): Promise<TrackLookupResult> {
+export async function trackLookup(code: string): Promise<TrackLookupResult> {
   const normalized = code.trim().toUpperCase();
-  const params = new URLSearchParams();
-  if (options?.nationalId?.trim()) {
-    params.set("national_id", options.nationalId.trim());
-  }
-  const qs = params.toString();
   const { data } = await api.get<
     ApiResponse<
       | { type: "candidate"; track: CandidateTrackView }
       | { type: "bank"; bank: BankTrackView }
       | { type: "candidate_challenge"; candidate_code: string }
       | { track: CandidateTrackView }
+      | null
+      | undefined
     >
-  >(`/candidates/track/${encodeURIComponent(normalized)}${qs ? `?${qs}` : ""}`);
+  >(`/candidates/track/${encodeURIComponent(normalized)}`);
 
-  const payload = data.data;
+  const payload = data?.data;
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Unexpected track response");
+  }
   if ("type" in payload && payload.type === "bank") {
     return { type: "bank", bank: payload.bank };
-  }
-  if ("type" in payload && payload.type === "candidate_challenge") {
-    return { type: "candidate_challenge", candidate_code: payload.candidate_code };
   }
   if ("type" in payload && payload.type === "candidate") {
     return { type: "candidate", track: payload.track };
   }
-  // Backward compatible response
+  if ("type" in payload && payload.type === "candidate_challenge") {
+    throw new Error(
+      "This API still requires national ID confirm. Point VITE_API_URL at the updated backend (e.g. http://localhost:5000/api) and restart the frontend.",
+    );
+  }
   if ("track" in payload && payload.track) {
     return { type: "candidate", track: payload.track };
   }

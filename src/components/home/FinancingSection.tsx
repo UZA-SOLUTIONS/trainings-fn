@@ -12,13 +12,8 @@ type FinancingSectionProps = {
 };
 
 export function FinancingSection({ option, onOptionChange }: FinancingSectionProps) {
-  function openCalculator(next: PayOption) {
-    onOptionChange(next);
-    document.getElementById("calculator")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   return (
-    <section id="financing" className="scroll-mt-20 border-y border-border/50 bg-muted/30">
+    <section id="financing" className="scroll-mt-20 border-t border-border/50 bg-muted/30">
       <div className="section-y">
         <div className="container-page">
           <div id="offers" className="flex scroll-mt-20 flex-wrap items-end justify-between gap-4">
@@ -34,26 +29,15 @@ export function FinancingSection({ option, onOptionChange }: FinancingSectionPro
               </a>
             </Button>
           </div>
-          <div className="mt-8 sm:mt-12">
-            <BuyOptionsGrid onSelect={openCalculator} />
-          </div>
+        </div>
+        <div className="mt-8 pl-4 sm:mt-12 sm:pl-6 md:pl-8 lg:pl-10">
+          <BuyOptionsGrid />
         </div>
       </div>
 
       <div id="calculator" className="scroll-mt-20 pb-10 pt-2 sm:pb-14 sm:pt-4 md:pb-16">
-        <div className="container-page">
-          <div className="max-w-3xl">
-            <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
-              Model Cash, Split, or Financed.
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Toggle one path at a time. Figures are estimates to help you plan — final terms come
-              from your partner bank.
-            </p>
-          </div>
-          <div className="mt-7 sm:mt-10">
-            <FinancingCalculator option={option} onOptionChange={onOptionChange} />
-          </div>
+        <div className="px-4 sm:px-6 md:px-8 lg:px-10">
+          <FinancingCalculator option={option} onOptionChange={onOptionChange} />
         </div>
       </div>
     </section>

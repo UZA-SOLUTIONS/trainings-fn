@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { MainLayout } from "@/layouts/MainLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -10,6 +10,8 @@ const Home = lazy(() => import("@/pages/Home"));
 const Track = lazy(() => import("@/pages/Track"));
 const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
+const BuyOption = lazy(() => import("@/pages/BuyOption"));
+const ExpoNews = lazy(() => import("@/pages/ExpoNews"));
 const Login = lazy(() => import("@/pages/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Courses = lazy(() => import("@/pages/Courses"));
@@ -27,43 +29,45 @@ function FallBack() {
 
 export function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<FallBack />}>
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/programme"
-              element={<Navigate to={{ pathname: "/", hash: "path" }} replace />}
-            />
-            <Route
-              path="/financing"
-              element={<Navigate to={{ pathname: "/", hash: "financing" }} replace />}
-            />
-            <Route path="/training" element={<Navigate to="/apply" replace />} />
-            <Route path="/track" element={<Track />} />
-            <Route path="/requirements" element={<Requirements />} />
-            <Route path="/apply" element={<Apply />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+    <Suspense fallback={<FallBack />}>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/programme"
+            element={<Navigate to={{ pathname: "/", hash: "path" }} replace />}
+          />
+          <Route
+            path="/financing"
+            element={<Navigate to={{ pathname: "/", hash: "financing" }} replace />}
+          />
+          <Route path="/training" element={<Navigate to="/apply" replace />} />
+          <Route path="/track" element={<Track />} />
+          <Route path="/requirements" element={<Requirements />} />
+          <Route path="/buy/:slug" element={<BuyOption />} />
+          <Route path="/news/:slug" element={<ExpoNews />} />
+          <Route path="/apply" element={<Apply />} />
+          <Route path="/account" element={<Navigate to="/track" replace />} />
+          <Route path="/account/login" element={<Navigate to="/track" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
 
-          <Route element={<AuthLayout />}>
-            <Route path="/auth" element={<Login />} />
-            <Route path="/login" element={<Navigate to="/auth" replace />} />
-          </Route>
+        <Route element={<AuthLayout />}>
+          <Route path="/auth" element={<Login />} />
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
+        </Route>
 
-          <Route element={<ProtectedRoute />}>
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/modules" element={<Modules />} />
-              <Route path="/manage" element={<Navigate to="/dashboard?tab=overview" replace />} />
-              <Route path="/institutions" element={<Navigate to="/dashboard?tab=banks" replace />} />
-              <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
-            </Route>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/modules" element={<Modules />} />
+            <Route path="/manage" element={<Navigate to="/dashboard?tab=overview" replace />} />
+            <Route path="/institutions" element={<Navigate to="/dashboard?tab=banks" replace />} />
+            <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
           </Route>
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }

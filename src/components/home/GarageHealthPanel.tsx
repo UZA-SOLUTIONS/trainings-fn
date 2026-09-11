@@ -126,7 +126,7 @@ function DiagnosisBlock({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-muted/15 px-4 py-4 sm:px-5">
+    <div className="px-0 py-1">
       <p className={cn(VALUE, "text-lg sm:text-xl")}>{title}</p>
       {children}
     </div>
@@ -136,41 +136,55 @@ function DiagnosisBlock({
 /**
  * Full EV diagnosis + garage updates on the track page.
  * Numbers stay at 0 until the garage syncs live telemetry.
+ * Use `embedded` inside CandidateDossierCard (no outer Card).
  */
 export function GarageHealthPanel({
   garage,
   evOfChoice,
+  embedded = false,
 }: {
   garage: GaragePreview;
   evOfChoice?: string | null;
+  embedded?: boolean;
 }) {
   const { health, vehicle, updates } = garage;
   const model = (evOfChoice || vehicle.model || "").trim();
   const warnings = health.active_warnings ?? [];
+  const statusLabel = garage.live ? "Active" : "Awaiting garage";
+  const statusTone = garage.live
+    ? "bg-emerald-600 text-white"
+    : "border-2 border-amber-400/70 bg-amber-100 text-amber-800";
 
-  return (
-    <Card className="border-border/70 p-6 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className={cn(VALUE, "text-2xl sm:text-3xl")}>Car health & diagnosis</h3>
-          <p className="mt-2 font-display text-base font-medium tracking-tight text-foreground sm:text-lg">
-            EV of choice: {model || "Not selected yet"}
-            {vehicle.plate ? ` · ${vehicle.plate}` : ""}
-          </p>
-          {garage.message ? (
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {garage.message}
-            </p>
-          ) : null}
-        </div>
-        <span className="rounded-full bg-volt/15 px-3 py-1 font-display text-xs font-medium uppercase tracking-wide text-foreground">
-          {garage.live ? "Live from garage" : "Awaiting garage"}
+  const body = (
+    <>
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="font-display text-base font-semibold text-primary sm:text-lg">
+          Car health & diagnosis
+        </h3>
+        <span
+          className={cn(
+            "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold",
+            statusTone,
+          )}
+        >
+          {statusLabel}
         </span>
       </div>
+      <p className="mt-2 text-base text-foreground/90">
+        EV of choice: {model || "Not selected yet"}
+        {vehicle.plate ? ` · ${vehicle.plate}` : ""}
+      </p>
+      {garage.message ? (
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {garage.message}
+        </p>
+      ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div>
-          <p className={cn(VALUE, "text-xl sm:text-2xl")}>Overall health</p>
+          <p className="font-display text-base font-semibold text-primary sm:text-lg">
+            Overall health
+          </p>
           <p className={cn(VALUE, "mt-3 text-4xl sm:text-5xl")}>
             {health.overall_score}
             <span className="text-2xl text-muted-foreground sm:text-3xl">/100</span>
@@ -304,7 +318,7 @@ export function GarageHealthPanel({
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-border/50 px-4 py-4 sm:px-5">
+      <div className="mt-6">
         <p className={cn(VALUE, "text-lg sm:text-xl")}>Service & identity</p>
         <dl className="mt-3 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
           {[
@@ -343,7 +357,7 @@ export function GarageHealthPanel({
             {updates.map((u) => (
               <li
                 key={u.id || `${u.at}-${u.title}`}
-                className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5"
+                className="flex flex-wrap items-start justify-between gap-2 py-2.5"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-sm font-medium tracking-tight sm:text-base">
@@ -377,6 +391,12 @@ export function GarageHealthPanel({
           </p>
         )}
       </div>
-    </Card>
+    </>
   );
+
+  if (embedded) {
+    return <div className="border-t border-border/40 p-5 sm:p-6">{body}</div>;
+  }
+
+  return <Card className="border-border/70 p-6 sm:p-8">{body}</Card>;
 }

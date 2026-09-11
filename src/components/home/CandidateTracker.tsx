@@ -7,24 +7,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { TrackVisualDashboard } from "@/components/home/TrackVisuals";
-import { WalletUsagePanel } from "@/components/home/WalletUsagePanel";
-import { GarageHealthPanel } from "@/components/home/GarageHealthPanel";
+import { CandidateDossierCard } from "@/components/home/CandidateDossierCard";
 import { resolveTrackGarage, resolveTrackWallet, resolveTrackFinancing } from "@/components/home/trackFallbacks";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { downloadTrackReportPdf } from "@/utils/downloadTrackReport";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const STATUS_LABELS: Record<string, string> = {
-  enrolled: "Enrolled",
-  waitlisted: "Waiting list",
-  rejected: "Not accepted",
-  withdrawn: "Withdrawn",
-  graduated: "Graduated",
-};
 
 const TRAINING_LABELS: Record<string, string> = {
   not_started: "Not started",
@@ -78,400 +67,313 @@ export function CandidateTrackResult({ track }: { track: CandidateTrackView }) {
     track.training.status === "completed" || track.status === "graduated";
 
   return (
-    <div className="space-y-8">
-      <Card className="border-border/70 p-6 sm:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h3 className={cn(nameText, "text-3xl sm:text-4xl")}>{track.full_name}</h3>
-            <p className={cn(valueMd, "mt-2 text-primary")}>{track.candidate_code}</p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2 font-display font-medium"
-              onClick={() => {
+    <CandidateDossierCard
+      track={track}
+      wallet={wallet}
+      garage={garage}
+      evOfChoice={financing.target_vehicle_name}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="default"
+            className="h-11 gap-2 border-0 bg-emerald-600 px-5 text-base font-display font-semibold text-white shadow-none hover:bg-emerald-700"
+              onClick={async () => {
                 try {
-                  downloadTrackReportPdf(track);
+                  await downloadTrackReportPdf(track);
                   toast.success("Track report downloaded");
                 } catch {
                   toast.error("Could not create the PDF");
                 }
               }}
-            >
-              <FiDownload size={16} aria-hidden />
-              Download PDF
-            </Button>
-            <Badge
-              variant={isCertified ? "default" : "secondary"}
-              className={cn(
-                "px-3 py-1 text-sm font-medium",
-                isCertified
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-destructive/30 bg-destructive/10 text-destructive",
-              )}
-            >
-              {isCertified ? "Certified" : "Not certified"}
-            </Badge>
-            <Badge
-              variant={
-                track.status === "enrolled" || track.status === "graduated" ? "default" : "secondary"
-              }
-              className="px-3 py-1 text-sm font-medium"
-            >
-              {STATUS_LABELS[track.status] ?? track.status}
-              {track.waitlist_position ? ` · #${track.waitlist_position}` : ""}
-            </Badge>
-          </div>
+          >
+            <FiDownload size={18} aria-hidden />
+            Download PDF
+          </Button>
+          <Badge
+            variant={isCertified ? "default" : "secondary"}
+            className={cn(
+              "h-11 items-center rounded-md px-5 text-base font-semibold",
+              isCertified
+                ? "bg-primary text-primary-foreground"
+                : "border-2 border-amber-400/70 bg-amber-100 text-amber-800",
+            )}
+          >
+            {isCertified ? "Certified" : "Not certified"}
+          </Badge>
         </div>
-
-        {track.cohort && (
-          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:text-lg">
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Cohort
-              </dt>
-              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>{track.cohort.name}</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Start
-              </dt>
-              <dd className={cn(valueMd, "mt-1.5 text-base sm:text-lg")}>
-                {track.cohort.start_date ?? "To be confirmed"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Location
-              </dt>
-              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {track.cohort.location ?? "TBC"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Partner bank
-              </dt>
-              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {track.cohort.partner_bank ?? "Assigned after review"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                EV of choice
-              </dt>
-              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {financing.target_vehicle_name?.trim() || "Not selected yet"}
-              </dd>
-            </div>
-          </dl>
-        )}
-
-        {!track.cohort && financing.target_vehicle_name && (
-          <dl className="mt-6 grid gap-4 text-base sm:grid-cols-2 sm:text-lg">
-            <div>
-              <dt className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                EV of choice
-              </dt>
-              <dd className={cn(nameText, "mt-1.5 text-base sm:text-lg")}>
-                {financing.target_vehicle_name}
-              </dd>
-            </div>
-          </dl>
-        )}
-
-        <p className="mt-5 text-base text-muted-foreground sm:text-lg">
-          Current stage:{" "}
-          <span className={cn(nameText, "text-base sm:text-lg")}>{track.current_stage}</span>
-          {" · "}
-          Applied {new Date(track.applied_at).toLocaleDateString("en-RW")}
-        </p>
-      </Card>
-
-      <WalletUsagePanel wallet={wallet} variant="track" />
-
-      <GarageHealthPanel
-        garage={garage}
-        evOfChoice={financing.target_vehicle_name}
-      />
-
-      <TrackVisualDashboard track={track} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Training
-          </p>
-          <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <DonutChart
-              size={128}
-              strokeWidth={12}
-              centerLabel={`${trainingPct}%`}
-              centerSub="ready"
-              segments={[
-                { value: Math.max(trainingPct, 1), color: "var(--volt)", label: "Ready" },
-                {
-                  value: Math.max(100 - trainingPct, 1),
-                  color: "oklch(0.88 0.01 130)",
-                  label: "Left",
-                },
-              ]}
-            />
-            <div className="min-w-0 flex-1 self-stretch">
-              <p className="text-base text-muted-foreground">
-                {TRAINING_LABELS[track.training.status] ?? track.training.status} · overall readiness
-              </p>
-              <div className="mt-6">
-                <HistogramChart
-                  height={220}
-                  bars={[
-                    {
-                      label: "Attendance",
-                      value: track.training.attendance_percentage ?? 0,
-                      color: "var(--volt)",
-                    },
-                    {
-                      label: "Exam",
-                      value: track.training.exam_score ?? 0,
-                      color: "var(--primary)",
-                    },
-                  ]}
-                  valueFormatter={(n) => (n ? `${n}%` : "—")}
-                />
+      }
+    >
+      <div className="border-t border-border/40 p-5 sm:p-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="py-2">
+            <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Training
+            </p>
+            <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
+              <DonutChart
+                size={128}
+                strokeWidth={12}
+                centerLabel={`${trainingPct}%`}
+                centerSub="ready"
+                segments={[
+                  { value: Math.max(trainingPct, 1), color: "var(--volt)", label: "Ready" },
+                  {
+                    value: Math.max(100 - trainingPct, 1),
+                    color: "oklch(0.88 0.01 130)",
+                    label: "Left",
+                  },
+                ]}
+              />
+              <div className="min-w-0 flex-1 self-stretch">
+                <p className="text-base text-muted-foreground">
+                  {TRAINING_LABELS[track.training.status] ?? track.training.status} · overall readiness
+                </p>
+                <div className="mt-6">
+                  <HistogramChart
+                    height={220}
+                    bars={[
+                      {
+                        label: "Attendance",
+                        value: track.training.attendance_percentage ?? 0,
+                        color: "var(--volt)",
+                      },
+                      {
+                        label: "Exam",
+                        value: track.training.exam_score ?? 0,
+                        color: "var(--primary)",
+                      },
+                    ]}
+                    valueFormatter={(n) => (n ? `${n}%` : "—")}
+                  />
+                </div>
+                <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+                  <div className="flex items-baseline justify-between gap-4 py-3">
+                    <dt className={cn(nameText, "text-base text-muted-foreground")}>Status</dt>
+                    <dd className={valueMd}>
+                      {TRAINING_LABELS[track.training.status] ?? track.training.status}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+            </div>
+          </div>
+
+          <div className="py-2">
+            <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Financing
+            </p>
+            <div className="mt-3">
+              <p
+                className={cn(
+                  valueLg,
+                  depositPct != null && depositPct >= 100
+                    ? "text-primary"
+                    : depositPct != null && depositPct < 50
+                      ? "text-destructive"
+                      : "",
+                )}
+              >
+                {depositPct != null ? depositPct : "—"}
+                {depositPct != null && (
+                  <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
+                )}
+              </p>
+              <p className="mt-2 text-base text-muted-foreground">
+                of 10% deposit · bank pays price − contribution
+              </p>
+            </div>
+            <div className="mt-8">
+              <HistogramChart
+                height={280}
+                bars={[
+                  {
+                    label: "Vehicle",
+                    value: vehiclePrice,
+                    color: "oklch(0.35 0.04 158)",
+                  },
+                  {
+                    label: "Offered",
+                    value: depositReady,
+                    color: "var(--primary)",
+                  },
+                  {
+                    label: "To 10%",
+                    value: remainingToTen,
+                    color: "var(--destructive)",
+                  },
+                  {
+                    label: "Bank",
+                    value: bankFinance,
+                    color: "var(--volt)",
+                  },
+                ]}
+                valueFormatter={(n) => formatRwf(n, { compact: true })}
+              />
+            </div>
+            <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
+              {financing.target_vehicle_name && (
                 <div className="flex items-baseline justify-between gap-4 py-3">
-                  <dt className={cn(nameText, "text-base text-muted-foreground")}>Status</dt>
-                  <dd className={valueMd}>
-                    {TRAINING_LABELS[track.training.status] ?? track.training.status}
+                  <dt className={cn(nameText, "text-base text-muted-foreground")}>EV of choice</dt>
+                  <dd className={cn(nameText, "max-w-[60%] text-right text-base sm:text-lg")}>
+                    {financing.target_vehicle_name}
                   </dd>
                 </div>
-              </dl>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-border/70 p-6 sm:p-8">
-          <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Financing
-          </p>
-          <div className="mt-3">
-            <p
-              className={cn(
-                valueLg,
-                depositPct != null && depositPct >= 100
-                  ? "text-primary"
-                  : depositPct != null && depositPct < 50
-                    ? "text-destructive"
-                    : "",
               )}
-            >
-              {depositPct != null ? depositPct : "—"}
-              {depositPct != null && (
-                <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
-              )}
-            </p>
-            <p className="mt-2 text-base text-muted-foreground">
-              of 10% deposit · bank pays price − contribution
-            </p>
-          </div>
-          <div className="mt-8">
-            <HistogramChart
-              height={280}
-              bars={[
-                {
-                  label: "Vehicle",
-                  value: vehiclePrice,
-                  color: "oklch(0.35 0.04 158)",
-                },
-                {
-                  label: "Offered",
-                  value: depositReady,
-                  color: "var(--primary)",
-                },
-                {
-                  label: "To 10%",
-                  value: remainingToTen,
-                  color: "var(--destructive)",
-                },
-                {
-                  label: "Bank",
-                  value: bankFinance,
-                  color: "var(--volt)",
-                },
-              ]}
-              valueFormatter={(n) => formatRwf(n, { compact: true })}
-            />
-          </div>
-          <dl className="mt-5 divide-y divide-border/60 border-t border-border/60">
-            {financing.target_vehicle_name && (
               <div className="flex items-baseline justify-between gap-4 py-3">
-                <dt className={cn(nameText, "text-base text-muted-foreground")}>EV of choice</dt>
-                <dd className={cn(nameText, "max-w-[60%] text-right text-base sm:text-lg")}>
-                  {financing.target_vehicle_name}
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>Vehicle price</dt>
+                <dd className={valueMd}>
+                  {vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—"}
                 </dd>
               </div>
-            )}
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>Vehicle price</dt>
-              <dd className={valueMd}>
-                {vehiclePrice ? formatRwf(vehiclePrice, { compact: true }) : "—"}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>Deposit offered</dt>
-              <dd className={valueMd}>{formatRwf(depositReady, { compact: true })}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>Remaining to 10%</dt>
-              <dd className={cn(valueMd, remainingToTen > 0 ? "text-destructive" : "text-primary")}>
-                {formatRwf(remainingToTen, { compact: true })}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>
-                Bank pays (price − contribution)
-              </dt>
-              <dd className={valueMd}>
-                {vehiclePrice > 0 ? formatRwf(bankFinance, { compact: true }) : "—"}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
-              <dd className={valueMd}>
-                {financing.preferred_term_years != null
-                  ? `${financing.preferred_term_years} yrs`
-                  : "—"}
-              </dd>
-            </div>
-          </dl>
-        </Card>
-      </div>
-
-      <Card className="border-border/70 p-6 sm:p-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h3 className={cn(nameText, "text-2xl sm:text-3xl")}>Bank documents</h3>
-            <p
-              className={cn(
-                valueLg,
-                "mt-3",
-                track.documents_summary.percent >= 100
-                  ? "text-primary"
-                  : track.documents_summary.percent === 0
-                    ? "text-destructive"
-                    : "",
-              )}
-            >
-              {track.documents_summary.percent}
-              <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
-            </p>
-            <p className="mt-2 text-base text-muted-foreground">
-              {track.documents_summary.complete}/{track.documents_summary.required} required
-            </p>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>Deposit offered</dt>
+                <dd className={valueMd}>{formatRwf(depositReady, { compact: true })}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>Remaining to 10%</dt>
+                <dd className={cn(valueMd, remainingToTen > 0 ? "text-destructive" : "text-primary")}>
+                  {formatRwf(remainingToTen, { compact: true })}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>
+                  Bank pays (price − contribution)
+                </dt>
+                <dd className={valueMd}>
+                  {vehiclePrice > 0 ? formatRwf(bankFinance, { compact: true }) : "—"}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className={cn(nameText, "text-base text-muted-foreground")}>Term</dt>
+                <dd className={valueMd}>
+                  {financing.preferred_term_years != null
+                    ? `${financing.preferred_term_years} yrs`
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <DonutChart
-            size={120}
-            strokeWidth={12}
-            centerLabel={`${track.documents_summary.percent}%`}
-            centerSub="file"
-            segments={[
-              { value: docsProvided.length || 0.001, color: "var(--primary)", label: "Provided" },
-              { value: docsMissing.length || 0.001, color: "var(--destructive)", label: "Missing" },
-              { value: docsOptional.length || 0.001, color: "oklch(0.75 0.02 130)", label: "Optional" },
-            ]}
-          />
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {[
-            {
-              label: "On file",
-              count: docsProvided.length,
-              color: "bg-primary",
-              text: "text-primary",
-              pct:
-                track.documents.length > 0
-                  ? Math.round((docsProvided.length / track.documents.length) * 100)
-                  : 0,
-            },
-            {
-              label: "Still needed",
-              count: docsMissing.length,
-              color: "bg-destructive",
-              text: "text-destructive",
-              pct:
-                track.documents.length > 0
-                  ? Math.round((docsMissing.length / track.documents.length) * 100)
-                  : 0,
-            },
-            {
-              label: "Optional",
-              count: docsOptional.length,
-              color: "bg-foreground/30",
-              text: "text-muted-foreground",
-              pct:
-                track.documents.length > 0
-                  ? Math.round((docsOptional.length / track.documents.length) * 100)
-                  : 0,
-            },
-          ].map((row) => (
-            <div key={row.label} className="rounded-xl border border-border/50 bg-muted/20 px-4 py-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className={cn(nameText, "text-base text-muted-foreground")}>{row.label}</p>
-                <p className={cn(valueMd, row.text)}>{row.count}</p>
-              </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn("h-full rounded-full transition-all", row.color)}
-                  style={{ width: `${Math.min(100, row.pct)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {track.documents.map((d) => {
-            const tone = d.complete
-              ? "border-primary/30 bg-primary/10 text-primary"
-              : d.required
-                ? "border-destructive/25 bg-destructive/5 text-destructive"
-                : "border-border/60 bg-muted/40 text-muted-foreground";
-            return (
-              <span
-                key={d.key}
+        <div className="mt-6 py-2">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h3 className={cn(nameText, "text-2xl sm:text-3xl")}>Bank documents</h3>
+              <p
                 className={cn(
-                  "inline-flex max-w-full items-center rounded-lg border px-2.5 py-1.5 font-display text-xs font-medium tracking-tight sm:text-sm",
-                  tone,
+                  valueLg,
+                  "mt-3",
+                  track.documents_summary.percent >= 100
+                    ? "text-primary"
+                    : track.documents_summary.percent === 0
+                      ? "text-destructive"
+                      : "",
                 )}
-                title={d.label}
               >
-                <span className="truncate">{d.label}</span>
-              </span>
-            );
-          })}
+                {track.documents_summary.percent}
+                <span className="text-2xl text-muted-foreground sm:text-3xl">%</span>
+              </p>
+              <p className="mt-2 text-base text-muted-foreground">
+                {track.documents_summary.complete}/{track.documents_summary.required} required
+              </p>
+            </div>
+            <DonutChart
+              size={120}
+              strokeWidth={12}
+              centerLabel={`${track.documents_summary.percent}%`}
+              centerSub="file"
+              segments={[
+                { value: docsProvided.length || 0.001, color: "var(--primary)", label: "Provided" },
+                { value: docsMissing.length || 0.001, color: "var(--destructive)", label: "Missing" },
+                { value: docsOptional.length || 0.001, color: "oklch(0.75 0.02 130)", label: "Optional" },
+              ]}
+            />
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                label: "On file",
+                count: docsProvided.length,
+                color: "bg-primary",
+                text: "text-primary",
+                pct:
+                  track.documents.length > 0
+                    ? Math.round((docsProvided.length / track.documents.length) * 100)
+                    : 0,
+              },
+              {
+                label: "Still needed",
+                count: docsMissing.length,
+                color: "bg-destructive",
+                text: "text-destructive",
+                pct:
+                  track.documents.length > 0
+                    ? Math.round((docsMissing.length / track.documents.length) * 100)
+                    : 0,
+              },
+              {
+                label: "Optional",
+                count: docsOptional.length,
+                color: "bg-foreground/30",
+                text: "text-muted-foreground",
+                pct:
+                  track.documents.length > 0
+                    ? Math.round((docsOptional.length / track.documents.length) * 100)
+                    : 0,
+              },
+            ].map((row) => (
+              <div key={row.label} className="px-0 py-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className={cn(nameText, "text-base text-muted-foreground")}>{row.label}</p>
+                  <p className={cn(valueMd, row.text)}>{row.count}</p>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn("h-full rounded-full transition-all", row.color)}
+                    style={{ width: `${Math.min(100, row.pct)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            {track.documents.map((d) => {
+              const tone = d.complete
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : d.required
+                  ? "border-destructive/25 bg-destructive/5 text-destructive"
+                  : "border-border/60 bg-muted/40 text-muted-foreground";
+              return (
+                <span
+                  key={d.key}
+                  className={cn(
+                    "inline-flex max-w-full items-center border px-2.5 py-1.5 font-display text-xs font-medium tracking-tight sm:text-sm",
+                    tone,
+                  )}
+                  title={d.label}
+                >
+                  <span className="truncate">{d.label}</span>
+                </span>
+              );
+            })}
+          </div>
         </div>
-      </Card>
-    </div>
+      </div>
+    </CandidateDossierCard>
   );
 }
 
 type SearchProps = {
   variant?: "hero" | "section" | "page";
   onResult?: (track: CandidateTrackView) => void;
-  /** Called with ID (+ national ID for personal candidates). */
-  onSubmitLookup?: (payload: { code: string; nationalId?: string }) => void;
+  onSubmitLookup?: (payload: { code: string }) => void;
   /** @deprecated Prefer onSubmitLookup */
   onSubmitCode?: (code: string) => void;
   defaultCode?: string;
-  defaultNationalId?: string;
 };
-
-const CANDIDATE_ID_RE = /^UZA-\d{4}-\d{5}$/i;
-const BANK_ID_RE = /^UZA-BANK-\d{4}-\d{5}$/i;
 
 export function CandidateTrackSearch({
   variant = "section",
@@ -479,28 +381,18 @@ export function CandidateTrackSearch({
   onSubmitLookup,
   onSubmitCode,
   defaultCode = "",
-  defaultNationalId = "",
 }: SearchProps) {
   const [code, setCode] = useState(defaultCode);
-  const [nationalId, setNationalId] = useState(defaultNationalId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isHero = variant === "hero";
   const isPage = variant === "page";
   const onDark = isHero || isPage;
-  const trimmedCode = code.trim().toUpperCase();
-  const looksLikeCandidate = CANDIDATE_ID_RE.test(trimmedCode);
-  const looksLikeBank = BANK_ID_RE.test(trimmedCode);
-  const needsNationalId = looksLikeCandidate && !looksLikeBank;
 
   useEffect(() => {
     if (defaultCode) setCode(defaultCode);
   }, [defaultCode]);
-
-  useEffect(() => {
-    if (defaultNationalId) setNationalId(defaultNationalId);
-  }, [defaultNationalId]);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -510,31 +402,20 @@ export function CandidateTrackSearch({
       return;
     }
 
-    const isCandidate = CANDIDATE_ID_RE.test(trimmed) && !BANK_ID_RE.test(trimmed);
-    const nid = nationalId.trim();
-    if (isCandidate && !nid) {
-      setError("Enter the national ID linked to this candidate ID to confirm.");
-      return;
-    }
-
     setBusy(true);
     setError(null);
     try {
       if (onSubmitLookup) {
-        onSubmitLookup({ code: trimmed, nationalId: isCandidate ? nid : undefined });
+        onSubmitLookup({ code: trimmed });
         return;
       }
       if (onSubmitCode) {
         onSubmitCode(trimmed);
         return;
       }
-      const result = await trackLookup(trimmed, isCandidate ? { nationalId: nid } : undefined);
+      const result = await trackLookup(trimmed);
       if (result.type === "bank") {
         window.location.assign(`/track?id=${encodeURIComponent(trimmed)}`);
-        return;
-      }
-      if (result.type === "candidate_challenge") {
-        setError("Enter the national ID linked to this candidate ID to confirm.");
         return;
       }
       onResult?.(result.track);
@@ -558,7 +439,7 @@ export function CandidateTrackSearch({
         "w-full",
         isHero &&
           "rounded-2xl border border-white/15 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-4",
-        isPage && "max-w-2xl",
+        isPage && "mx-auto max-w-2xl text-center",
       )}
     >
       <p
@@ -571,10 +452,23 @@ export function CandidateTrackSearch({
       >
         Look up a candidate or bank ID.
       </p>
+      <p
+        className={cn(
+          "mt-2 text-sm",
+          isPage && "mx-auto max-w-lg",
+          onDark ? "text-ink-foreground/65" : "text-muted-foreground",
+        )}
+      >
+        Enter your candidate ID to open your application record.
+      </p>
 
       <form
         onSubmit={handleSearch}
-        className={cn(isHero && "mt-3.5 space-y-3", isPage && "mt-8 max-w-xl space-y-3", !onDark && "mt-8 max-w-xl space-y-3")}
+        className={cn(
+          isHero && "mt-3.5",
+          isPage && "mx-auto mt-8 w-full max-w-xl",
+          !onDark && !isPage && "mt-8 max-w-xl",
+        )}
       >
         <div className={fieldShell}>
           <div className="relative min-w-0 flex-1">
@@ -601,61 +495,26 @@ export function CandidateTrackSearch({
               spellCheck={false}
             />
           </div>
-          {!needsNationalId && (
-            <Button
-              type="submit"
-              size="sm"
-              className={cn(
-                "h-10 shrink-0 px-5 shadow-none",
-                isPage && "h-11 px-6 text-base",
-                onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
-              )}
-              disabled={busy}
-            >
-              {busy ? "…" : "Search"}
-            </Button>
-          )}
+          <Button
+            type="submit"
+            size="sm"
+            className={cn(
+              "h-10 shrink-0 px-5 shadow-none",
+              isPage && "h-11 px-6 text-base",
+              onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
+            )}
+            disabled={busy}
+          >
+            {busy ? "…" : "Search"}
+          </Button>
         </div>
-
-        {needsNationalId && (
-          <div className={fieldShell}>
-            <div className="relative min-w-0 flex-1">
-              <Input
-                value={nationalId}
-                onChange={(e) => setNationalId(e.target.value)}
-                placeholder="National ID to confirm"
-                aria-label="National ID"
-                className={cn(
-                  "h-10 w-full border-0 bg-transparent px-3 font-display tracking-wide shadow-none focus-visible:ring-0",
-                  isPage && "h-11 text-base",
-                  onDark
-                    ? "text-ink-foreground placeholder:text-ink-foreground/40"
-                    : "placeholder:text-muted-foreground",
-                )}
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            <Button
-              type="submit"
-              size="sm"
-              className={cn(
-                "h-10 shrink-0 px-5 shadow-none",
-                isPage && "h-11 px-6 text-base",
-                onDark ? "bg-volt text-volt-foreground hover:bg-volt/90" : "",
-              )}
-              disabled={busy}
-            >
-              {busy ? "…" : "Confirm"}
-            </Button>
-          </div>
-        )}
       </form>
 
       {error && (
         <p
           className={cn(
             "mt-3 text-sm leading-snug",
+            isPage && "mx-auto max-w-xl",
             onDark
               ? "text-red-200"
               : "rounded-lg border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-destructive",

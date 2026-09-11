@@ -142,35 +142,41 @@
     border-color: var(--color-border);
   }
 
-  /* Thin brand scrollbar — forest track, primary thumb, volt on hover */
+  /* Page scroll uses the lens tick indicator; hide the native document bar */
   html {
     overflow-x: clip;
     -webkit-text-size-adjust: 100%;
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary) transparent;
+    scrollbar-width: none;
   }
 
-  *::-webkit-scrollbar {
+  html::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  /* Nested overflow areas keep a thin brand scrollbar */
+  *:not(html)::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
-  *::-webkit-scrollbar-track {
+  *:not(html)::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  *::-webkit-scrollbar-thumb {
+  *:not(html)::-webkit-scrollbar-thumb {
     background-color: var(--primary);
     border-radius: 999px;
     border: 1px solid transparent;
     background-clip: padding-box;
   }
 
-  *::-webkit-scrollbar-thumb:hover {
+  *:not(html)::-webkit-scrollbar-thumb:hover {
     background-color: var(--volt);
   }
 
-  *::-webkit-scrollbar-corner {
+  *:not(html)::-webkit-scrollbar-corner {
     background: transparent;
   }
 

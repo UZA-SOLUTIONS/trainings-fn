@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { FiArrowDownLeft, FiArrowUpRight, FiEye, FiEyeOff } from "react-icons/fi";
+import {
+  FiArrowDownLeft,
+  FiArrowUpRight,
+  FiCreditCard,
+} from "react-icons/fi";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
 
 export type WalletPreview = {
   status: "planned" | string;
@@ -97,90 +100,19 @@ type CashflowItem = {
 };
 
 const VALUE = "font-display font-medium tracking-tight tabular-nums text-foreground";
-const HIDDEN = "••••••";
-
-function MoneyAmount({
-  amount,
-  compact = false,
-  prefix = "",
-  className,
-  iconClassName,
-}: {
-  amount: number | null | undefined;
-  compact?: boolean;
-  prefix?: string;
-  className?: string;
-  iconClassName?: string;
-}) {
-  const [visible, setVisible] = useState(false);
-  const display =
-    amount == null
-      ? "0 RWF"
-      : formatRwf(amount, { compact });
-
-  return (
-    <span
-      className={cn(
-        "inline-flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap align-middle",
-        className,
-      )}
-    >
-      <span className={cn(VALUE, "inline whitespace-nowrap leading-none")}>
-        {visible ? `${prefix}${display}` : HIDDEN}
-      </span>
-      <button
-        type="button"
-        className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-          iconClassName,
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          setVisible((v) => !v);
-        }}
-        aria-label={visible ? "Hide amount" : "Show amount"}
-        aria-pressed={!visible}
-      >
-        {visible ? <FiEyeOff size={16} aria-hidden /> : <FiEye size={16} aria-hidden />}
-      </button>
-    </span>
-  );
-}
-
-function BalanceRow({
-  label,
-  amount,
-  compact = false,
-  amountClassName,
-}: {
-  label: string;
-  amount: number;
-  compact?: boolean;
-  amountClassName?: string;
-}) {
-  return (
-    <div className="flex flex-nowrap items-center justify-between gap-3 whitespace-nowrap">
-      <span className="min-w-0 shrink truncate font-display text-sm font-medium text-muted-foreground sm:text-base">
-        {label}
-      </span>
-      <MoneyAmount
-        amount={amount}
-        compact={compact}
-        className={cn("shrink-0", amountClassName)}
-      />
-    </div>
-  );
-}
 
 /**
- * Driver / bank facing UZA wallet — balance, hide amounts, income & expenses.
+ * Driver / bank facing UZA wallet — balance, income & expenses.
+ * Use `embedded` inside CandidateDossierCard (no outer shell / title).
  */
 export function WalletUsagePanel({
   wallet,
   variant = "track",
+  embedded = false,
 }: {
   wallet: WalletPreview;
   variant?: "track" | "bank";
+  embedded?: boolean;
 }) {
   const { financing, app_numbers } = wallet;
   const [tab, setTab] = useState<CashflowTab>("income");
@@ -192,165 +124,247 @@ export function WalletUsagePanel({
     linked_phone: "0",
   };
 
-  // Ledger not wired yet — totals stay at 0; real transactions will list below.
   const incomeItems: CashflowItem[] = [];
   const expenseItems: CashflowItem[] = [];
   const incomeTotal = 0;
   const expenseTotal = 0;
   const activeItems = tab === "income" ? incomeItems : expenseItems;
 
-  return (
-    <Card className="border-border/70 p-6 sm:p-8">
-      <div>
-        <h3 className={cn(VALUE, "text-2xl sm:text-3xl")}>
-          {variant === "bank" ? "Driver UZA wallet" : "Your UZA wallet"}
+  const statusLabel = wallet.live ? "Active" : "Not active";
+  const statusTone = wallet.live
+    ? "bg-emerald-600 text-white"
+    : "border-2 border-amber-400/70 bg-amber-100 text-amber-800";
+
+  const balanceRows = [
+    {
+      label: "Available",
+      amount: wallet.balances.available_rwf,
+      compact: false,
+      emphasize: true,
+    },
+    {
+      label: "Savings locked",
+      amount: wallet.balances.savings_locked_rwf,
+      compact: true,
+      emphasize: false,
+    },
+    {
+      label: "Commission owed",
+      amount: wallet.balances.commission_owed_rwf,
+      compact: true,
+      emphasize: false,
+    },
+  ];
+
+  const railRows = [
+    {
+      label: "MTN MoMo",
+      value: appNumbers.momo || "0",
+      iconSrc: "/mtn.webp",
+    },
+    {
+      label: "Airtel Money",
+      value: appNumbers.airtel || "0",
+      iconSrc: "/airtel.webp",
+    },
+    { label: "UZA wallet", value: appNumbers.uza_wallet || "0" },
+    { label: "Linked phone", value: appNumbers.linked_phone || "0" },
+  ];
+
+  const detailRows = [
+    {
+      label: "EV of choice",
+      value: financing.target_vehicle_name?.trim() || "Not selected yet",
+    },
+    { label: "UZA ID", value: wallet.uza_id || "—" },
+  ];
+
+  const body = (
+    <div className="grid lg:grid-cols-2">
+      <div className="border-b border-border/40 p-5 sm:p-6 lg:border-b-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="flex items-center gap-2 font-display text-base font-semibold text-primary sm:text-lg">
+            <FiCreditCard className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
+            Wallet balances
+          </h3>
+          <span
+            className={cn(
+              "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold",
+              statusTone,
+            )}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <ul className="mt-4 grid gap-4 sm:grid-cols-3">
+          {balanceRows.map((row) => (
+            <li key={row.label} className="min-w-0">
+              <p className="text-base font-semibold text-primary/90">{row.label}</p>
+              <p
+                className={cn(
+                  VALUE,
+                  "mt-1.5",
+                  row.emphasize ? "text-xl sm:text-2xl" : "text-base sm:text-lg",
+                )}
+              >
+                {formatRwf(row.amount, { compact: row.compact })}
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        <h3 className="mt-8 font-display text-base font-semibold text-primary sm:text-lg">
+          Linked accounts
         </h3>
-        <p className="mt-2 font-display text-base font-medium tracking-tight text-foreground sm:text-lg">
-          EV of choice: {financing.target_vehicle_name?.trim() || "Not selected yet"}
-        </p>
-      </div>
-
-      <div className="mt-8 space-y-0 rounded-xl border border-border/50 bg-muted/25 px-4 py-2 sm:px-6">
-        <div className="py-3">
-          <BalanceRow
-            label="Available"
-            amount={wallet.balances.available_rwf}
-            amountClassName="text-2xl sm:text-3xl [&_span]:text-2xl sm:[&_span]:text-3xl"
-          />
-        </div>
-        <div className="border-t border-border/50 py-3">
-          <BalanceRow
-            label="Savings locked"
-            amount={wallet.balances.savings_locked_rwf}
-            compact
-            amountClassName="text-lg sm:text-xl [&_span]:text-lg sm:[&_span]:text-xl"
-          />
-        </div>
-        <div className="border-t border-border/50 py-3">
-          <BalanceRow
-            label="Commission owed"
-            amount={wallet.balances.commission_owed_rwf}
-            compact
-            amountClassName="text-lg sm:text-xl [&_span]:text-lg sm:[&_span]:text-xl"
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-border/50 px-4 py-4 sm:px-5">
-        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "MTN MoMo", value: appNumbers.momo },
-            { label: "Airtel Money", value: appNumbers.airtel },
-            { label: "UZA wallet", value: appNumbers.uza_wallet },
-            { label: "Linked phone", value: appNumbers.linked_phone },
-          ].map((row) => (
-            <div key={row.label}>
-              <dt className="font-display text-sm font-medium text-muted-foreground">{row.label}</dt>
-              <dd className={cn(VALUE, "mt-1.5 text-xl sm:text-2xl")}>{row.value || "0"}</dd>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {railRows.map((row) => (
+            <li key={row.label} className="min-w-0">
+              <div className="flex items-center gap-2">
+                {"iconSrc" in row && row.iconSrc ? (
+                  <img
+                    src={row.iconSrc}
+                    alt=""
+                    className="h-6 w-6 shrink-0 object-contain"
+                  />
+                ) : null}
+                <p className="truncate text-base font-semibold text-primary/90">{row.label}</p>
+              </div>
+              <p className="mt-1.5 text-base text-foreground/90 sm:text-lg">{row.value}</p>
+            </li>
+          ))}
+        </ul>
+        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          {detailRows.map((row) => (
+            <div key={row.label} className="min-w-0">
+              <dt className="text-base font-semibold text-primary/90">{row.label}</dt>
+              <dd className="mt-1.5 min-w-0 break-words text-base text-foreground/90 sm:text-lg">
+                {row.value}
+              </dd>
             </div>
           ))}
         </dl>
       </div>
 
-      <div className="mt-8">
-        <div className="flex gap-2 rounded-xl border border-border/60 bg-muted/20 p-1">
+      <div className="p-5 sm:p-6">
+        <h3 className="font-display text-base font-semibold text-primary sm:text-lg">
+          Cashflow
+        </h3>
+
+        <div className="mt-4 flex gap-6">
           <button
             type="button"
             onClick={() => setTab("income")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-medium tracking-tight transition-colors sm:text-base",
+              "flex items-center gap-2 py-1 font-display text-base font-medium tracking-tight transition-colors",
               tab === "income"
-                ? "bg-background text-foreground shadow-sm"
+                ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <FiArrowDownLeft className="text-emerald-600" size={18} aria-hidden />
             Income
-            <MoneyAmount
-              amount={incomeTotal}
-              compact
-              className="text-sm text-emerald-700 sm:text-base [&_span]:text-sm sm:[&_span]:text-base [&_span]:text-emerald-700"
-            />
+            <span className={cn(VALUE, "text-sm text-emerald-700 sm:text-base")}>
+              {formatRwf(incomeTotal, { compact: true })}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setTab("expenses")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 font-display text-sm font-medium tracking-tight transition-colors sm:text-base",
+              "flex items-center gap-2 py-1 font-display text-base font-medium tracking-tight transition-colors",
               tab === "expenses"
-                ? "bg-background text-foreground shadow-sm"
+                ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <FiArrowUpRight className="text-destructive" size={18} aria-hidden />
             Expenses
-            <MoneyAmount
-              amount={expenseTotal}
-              compact
-              className="text-sm text-destructive sm:text-base [&_span]:text-sm sm:[&_span]:text-base [&_span]:text-destructive"
-            />
+            <span className={cn(VALUE, "text-sm text-destructive sm:text-base")}>
+              {formatRwf(expenseTotal, { compact: true })}
+            </span>
           </button>
         </div>
 
         <div className="mt-5">
-          <h4 className={cn(VALUE, "text-xl sm:text-2xl")}>
-            {tab === "income" ? "Income" : "Expenses"}
-          </h4>
+          <div className="grid grid-cols-[7rem_1fr_6.5rem] gap-3 border-b border-border/70 pb-2 text-sm font-semibold text-primary/90">
+            <span>Date</span>
+            <span>Description</span>
+            <span className="text-right">Amount</span>
+          </div>
 
           {activeItems.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-border/60 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-              No transactions recorded yet
-            </p>
+            <ul className="mt-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li
+                  key={`placeholder-${i}`}
+                  className="grid grid-cols-[7rem_1fr_6.5rem] items-center gap-3 border-b border-dotted border-border/80 py-3.5 text-base text-muted-foreground/50"
+                >
+                  <span>—</span>
+                  <span>—</span>
+                  <span className="text-right">—</span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <ul className="mt-4 divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
+            <ul className="mt-1">
               {activeItems.map((item) => (
                 <li
                   key={item.id}
-                  className="flex items-center gap-3 bg-background px-3 py-3.5 sm:px-4"
+                  className="grid grid-cols-[7rem_1fr_6.5rem] items-center gap-3 border-b border-dotted border-border/80 py-3.5"
                 >
-                  <span
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                      tab === "income"
-                        ? "bg-emerald-500/15 text-emerald-600"
-                        : "bg-destructive/10 text-destructive",
-                    )}
-                    aria-hidden
-                  >
-                    {tab === "income" ? (
-                      <FiArrowDownLeft size={18} />
-                    ) : (
-                      <FiArrowUpRight size={18} />
-                    )}
+                  <span className="text-sm text-muted-foreground">
+                    {item.at ? new Date(item.at).toLocaleDateString("en-GB") : "—"}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-base font-medium tracking-tight">{item.label}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-base font-medium tracking-tight">
+                      {item.label}
+                    </p>
                     {item.detail && (
-                      <p className="mt-0.5 text-sm text-muted-foreground">{item.detail}</p>
-                    )}
-                    {item.at && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {new Date(item.at).toLocaleString("en-RW")}
-                      </p>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{item.detail}</p>
                     )}
                   </div>
-                  <MoneyAmount
-                    amount={item.amount}
-                    compact
-                    prefix={tab === "income" ? "+" : "−"}
+                  <span
                     className={cn(
-                      "shrink-0 text-lg sm:text-xl [&_span]:text-lg sm:[&_span]:text-xl",
-                      tab === "income"
-                        ? "[&_span]:text-emerald-700"
-                        : "[&_span]:text-destructive",
+                      VALUE,
+                      "text-right text-base",
+                      tab === "income" ? "text-emerald-700" : "text-destructive",
                     )}
-                  />
+                  >
+                    {tab === "income" ? "+" : "−"}
+                    {formatRwf(item.amount, { compact: true })}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
-    </Card>
+    </div>
+  );
+
+  if (embedded) {
+    return <div className="border-t border-border/40">{body}</div>;
+  }
+
+  return (
+    <div className="overflow-hidden border-2 border-primary/50 bg-background shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-primary/25 px-4 py-3.5 sm:px-5">
+        <div className="flex flex-wrap items-center gap-3 text-primary">
+          <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">
+            {variant === "bank" ? "Driver UZA wallet" : "Your UZA wallet"}
+          </h2>
+          <span
+            className={cn(
+              "inline-flex h-11 items-center rounded-full px-5 text-base font-semibold capitalize",
+              statusTone,
+            )}
+          >
+            {statusLabel}
+          </span>
+        </div>
+      </div>
+      {body}
+    </div>
   );
 }

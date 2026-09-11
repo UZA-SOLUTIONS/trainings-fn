@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import {
   CASH_DISCOUNT,
@@ -41,12 +42,12 @@ export const PAY_OPTION_META: Record<
 const PAY_OPTIONS: PayOption[] = ["cash", "split", "financed"];
 
 type FinancingCalculatorProps = {
-  /** Controlled payment option (e.g. from offer buttons). */
   option?: PayOption;
   onOptionChange?: (option: PayOption) => void;
   className?: string;
 };
 
+/** Glassmorphism calculator over a forest still — left copy, right interactive panel. */
 export function FinancingCalculator({
   option: controlledOption,
   onOptionChange,
@@ -128,259 +129,247 @@ export function FinancingCalculator({
     onOptionChange?.(next);
   }
 
-  const headline =
+  const primaryResult =
     payOption === "financed"
       ? {
-          eyebrow: "Daily payment",
-          amount: Math.round(financed.dailyPayment),
-          unit: `RWF / day · ${financed.months} mo`,
+          label: "Daily payment",
+          amount: formatRwf(Math.round(financed.dailyPayment)),
+          suffix: `/ day · ${financed.months} mo`,
+          iconSrc: "/cash.png",
         }
       : payOption === "cash"
         ? {
-            eyebrow: "You pay",
-            amount: Math.round(cash.payable),
-            unit: `RWF · ${cash.discountPercent}% off`,
+            label: "You pay",
+            amount: formatRwf(Math.round(cash.payable)),
+            suffix: `· ${cash.discountPercent}% off`,
+            iconSrc: "/cash.png",
           }
         : {
-            eyebrow: "Due now",
-            amount: Math.round(split.now),
-            unit: `RWF · 30% after ${split.discountPercent}% off`,
+            label: "Due now",
+            amount: formatRwf(Math.round(split.now)),
+            suffix: `· 30% after ${split.discountPercent}% off`,
+            iconSrc: "/cash.png",
+          };
+
+  const secondaryResult =
+    payOption === "financed"
+      ? {
+          label: "Monthly",
+          amount: formatRwf(Math.round(financed.monthlyPayment)),
+          suffix: `· Financed ${formatRwf(financed.principal, { compact: true })}`,
+          iconSrc: "/cash2.png",
+        }
+      : payOption === "cash"
+        ? {
+            label: "You save",
+            amount: formatRwf(Math.round(cash.discountAmount)),
+            suffix: "· Discount on list price",
+            iconSrc: "/cash2.png",
+          }
+        : {
+            label: "On delivery",
+            amount: formatRwf(Math.round(split.onDelivery)),
+            suffix: "· Remaining 70%",
+            iconSrc: "/cash2.png",
           };
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.75rem] border border-white/12 text-ink-foreground sm:rounded-[2rem]",
+        "relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem]",
         className,
       )}
     >
       <img
-        src="/ev.avif"
+        src="/calculator-forest.png"
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,oklch(0.16_0.04_158_/0.94)_0%,oklch(0.18_0.04_158_/0.88)_45%,oklch(0.2_0.03_158_/0.78)_100%)]" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-80"
-        aria-hidden
-        style={{
-          backgroundImage: `
-            radial-gradient(ellipse 55% 45% at 90% 10%, oklch(0.85 0.18 128 / 0.14), transparent 55%),
-            radial-gradient(ellipse 40% 35% at 0% 100%, oklch(0.35 0.06 158 / 0.35), transparent 50%)
-          `,
-        }}
-      />
+      <div className="absolute inset-0 bg-[oklch(0.22_0.05_145_/0.55)]" />
 
-      <div className="relative z-10 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        {/* Result */}
-        <div className="flex flex-col justify-between gap-8 border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10 xl:p-12">
-          <div>
-            <p className="text-eyebrow text-ink-foreground/55">{headline.eyebrow}</p>
-            <p className="mt-3 font-display text-[2.75rem] font-bold leading-none tracking-tight sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-              {headline.amount.toLocaleString("en-US")}
-            </p>
-            <p className="mt-3 text-sm text-ink-foreground/65 sm:text-base">{headline.unit}</p>
-          </div>
-
-          <dl className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-            {payOption === "financed" && (
-              <>
-                <Stat label="Monthly" value={formatRwf(financed.monthlyPayment)} />
-                <Stat label="Financed" value={formatRwf(financed.principal)} />
-                <Stat label="Interest" value={formatRwf(financed.totalInterest)} />
-                <Stat
-                  label="Collateral free"
-                  value={
-                    financed.equityReleaseMonth
-                      ? `Mo ${financed.equityReleaseMonth}`
-                      : "At end"
-                  }
-                />
-                {financed.processingFee > 0 && (
-                  <Stat label="Fee" value={formatRwf(financed.processingFee)} className="hidden sm:block" />
-                )}
-                {financed.annualInsurance > 0 && (
-                  <Stat
-                    label="Insurance / yr"
-                    value={formatRwf(financed.annualInsurance)}
-                    className="hidden sm:block"
-                  />
-                )}
-              </>
-            )}
-
-            {payOption === "cash" && (
-              <>
-                <Stat label="List price" value={formatRwf(vehicleCost)} />
-                <Stat label="Discount" value={`− ${formatRwf(cash.discountAmount)}`} />
-                <Stat label="Due now" value={formatRwf(cash.payable)} className="sm:col-span-2" />
-              </>
-            )}
-
-            {payOption === "split" && (
-              <>
-                <Stat label="List price" value={formatRwf(vehicleCost)} />
-                <Stat label="Discount" value={`− ${formatRwf(split.discountAmount)}`} />
-                <Stat label="Total" value={formatRwf(split.payable)} />
-                <Stat label="On delivery" value={formatRwf(split.onDelivery)} />
-              </>
-            )}
-          </dl>
-
-          <p className="text-xs text-ink-foreground/45">Indicative · {routed.name}</p>
+      <div className="relative z-10 grid gap-10 px-5 py-10 sm:gap-12 sm:px-8 sm:py-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-14 lg:px-12 lg:py-16 xl:px-16">
+        <div className="max-w-lg text-white">
+          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+            Plan your path to an EV
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-white/85 sm:text-base">
+            Model cash, split, or bank financing against a real vehicle price. Estimates help you
+            plan. Final terms come from your partner bank.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-white/75 sm:text-[15px]">
+            Adjust the sliders to see daily or upfront payments update live. Indicative rates use{" "}
+            {routed.name}.
+          </p>
+          <Link
+            to="/apply"
+            className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Apply now
+          </Link>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-col gap-7 p-6 sm:gap-8 sm:p-8 lg:p-10 xl:p-12">
-          <div>
-            <p className="text-eyebrow text-ink-foreground/55">Payment path</p>
-            <div
-              role="tablist"
-              aria-label="Payment option"
-              className="mt-3 grid grid-cols-3 gap-1.5"
-            >
-              {PAY_OPTIONS.map((value) => {
-                const active = payOption === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => selectPayOption(value)}
-                    className={cn(
-                      "rounded-2xl border px-2 py-3 text-center text-sm font-medium transition-colors sm:px-3 sm:py-3.5",
-                      active
-                        ? "border-volt bg-volt text-volt-foreground"
-                        : "border-white/15 bg-white/[0.04] text-ink-foreground/75 hover:border-white/30 hover:bg-white/[0.08] hover:text-ink-foreground",
-                    )}
-                  >
-                    {PAY_OPTION_META[value].label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-ink-foreground/60">
-              {PAY_OPTION_META[payOption].description}
-            </p>
+        <div className="rounded-2xl border border-white/20 bg-white/15 p-5 shadow-xl backdrop-blur-md sm:rounded-3xl sm:p-7 md:p-8">
+          <div
+            role="tablist"
+            aria-label="Payment option"
+            className="grid grid-cols-3 gap-2"
+          >
+            {PAY_OPTIONS.map((value) => {
+              const active = payOption === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => selectPayOption(value)}
+                  className={cn(
+                    "rounded-lg px-2 py-2.5 text-center text-sm font-medium transition-colors",
+                    active
+                      ? "bg-volt text-volt-foreground"
+                      : "bg-white/20 text-white hover:bg-white/30",
+                  )}
+                >
+                  {PAY_OPTION_META[value].label}
+                </button>
+              );
+            })}
           </div>
 
-          <ControlBlock
-            label="Vehicle cost"
-            value={formatRwf(vehicleCost, { compact: true })}
-          >
-            <Slider
-              className="mt-4"
-              value={[vehicleCost]}
-              min={8_000_000}
-              max={35_000_000}
-              step={500_000}
-              onValueChange={([v]) => setVehicleCost(v ?? vehicleCost)}
-            />
-          </ControlBlock>
+          <div className="mt-7 space-y-6">
+            <GlassSliderRow
+              label="Vehicle cost"
+              display={formatRwf(vehicleCost, { compact: true })}
+            >
+              <Slider
+                value={[vehicleCost]}
+                min={8_000_000}
+                max={35_000_000}
+                step={500_000}
+                onValueChange={([v]) => setVehicleCost(v ?? vehicleCost)}
+              />
+            </GlassSliderRow>
 
-          {payOption === "financed" && (
-            <>
-              <ControlBlock
-                label="Deposit"
-                value={`${depositPercent}% · ${formatRwf(financed.clientDeposit, { compact: true })}`}
-              >
-                <Slider
-                  className="mt-4"
-                  value={[depositPercent]}
-                  min={depositMin}
-                  max={depositMax}
-                  step={1}
-                  onValueChange={([v]) => setDepositPercent(v ?? depositPercent)}
-                />
-                {financed.uzaAccessTopUp > 0 || belowRequired ? (
-                  <p className="mt-2 text-xs text-ink-foreground/55">
-                    {financed.uzaAccessTopUp > 0
-                      ? `UZA Access +${formatRwf(financed.uzaAccessTopUp, { compact: true })}`
-                      : null}
-                    {financed.uzaAccessTopUp > 0 && belowRequired ? " · " : null}
-                    {belowRequired ? `Below ${requiredPercent}% bank minimum` : null}
-                  </p>
-                ) : null}
-              </ControlBlock>
+            {payOption === "financed" && (
+              <>
+                <GlassSliderRow
+                  label="Deposit"
+                  display={`${depositPercent}%`}
+                  note={
+                    financed.uzaAccessTopUp > 0 || belowRequired
+                      ? [
+                          financed.uzaAccessTopUp > 0
+                            ? `UZA Access +${formatRwf(financed.uzaAccessTopUp, { compact: true })}`
+                            : null,
+                          financed.uzaAccessTopUp > 0 && belowRequired ? " · " : null,
+                          belowRequired ? `Below ${requiredPercent}% bank minimum` : null,
+                        ]
+                          .filter(Boolean)
+                          .join("")
+                      : undefined
+                  }
+                >
+                  <Slider
+                    value={[depositPercent]}
+                    min={depositMin}
+                    max={depositMax}
+                    step={1}
+                    onValueChange={([v]) => setDepositPercent(v ?? depositPercent)}
+                  />
+                </GlassSliderRow>
 
-              <div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-eyebrow text-ink-foreground/55">Term</p>
-                  <p className="text-sm text-ink-foreground/55">
-                    {(financed.annualRate * 100).toFixed(0)}% p.a.
+                <div>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <p className="w-[6.5rem] shrink-0 text-sm text-white/85 sm:w-28">Term</p>
+                    <div
+                      className="grid min-w-0 flex-1 gap-2"
+                      style={{ gridTemplateColumns: `repeat(${terms.length}, minmax(0, 1fr))` }}
+                    >
+                      {terms.map((t) => {
+                        const active = termYears === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setTermYears(t)}
+                            className={cn(
+                              "w-full rounded-lg px-2 py-2.5 text-sm font-medium transition-colors sm:py-3",
+                              active
+                                ? "bg-volt text-volt-foreground"
+                                : "bg-white/20 text-white hover:bg-white/30",
+                            )}
+                          >
+                            {t} yr
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p className="mt-2 pl-[calc(6.5rem+0.75rem)] text-xs text-white/65 sm:pl-[calc(7rem+1rem)]">
+                    {(financed.annualRate * 100).toFixed(0)}% p.a. indicative
                   </p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {terms.map((t) => {
-                    const active = termYears === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setTermYears(t)}
-                        className={cn(
-                          "min-w-[4.25rem] rounded-2xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                          active
-                            ? "border-volt bg-volt text-volt-foreground"
-                            : "border-white/15 bg-white/[0.04] text-ink-foreground/75 hover:border-white/30 hover:bg-white/[0.08]",
-                        )}
-                      >
-                        {t} yr
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+
+          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <ResultCard {...primaryResult} />
+            <ResultCard {...secondaryResult} />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ControlBlock({
+function GlassSliderRow({
   label,
-  value,
+  display,
+  note,
   children,
 }: {
   label: string;
-  value: string;
-  children: ReactNode;
+  display: string;
+  note?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-eyebrow text-ink-foreground/55">{label}</p>
-        <p className="font-display text-base font-semibold tracking-tight sm:text-lg">{value}</p>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <p className="w-[6.5rem] shrink-0 text-sm text-white/85 sm:w-28">{label}</p>
+        <div className="min-w-0 flex-1">{children}</div>
+        <div className="flex h-10 min-w-[5.5rem] shrink-0 items-center justify-center rounded-md bg-white px-3 text-sm font-semibold text-neutral-900 sm:min-w-[6.5rem]">
+          {display}
+        </div>
       </div>
-      {children}
+      {note ? <p className="mt-2 pl-[calc(6.5rem+0.75rem)] text-xs text-white/70 sm:pl-[calc(7rem+1rem)]">{note}</p> : null}
     </div>
   );
 }
 
-function Stat({
+function ResultCard({
   label,
-  value,
-  className,
+  amount,
+  suffix,
+  iconSrc,
 }: {
   label: string;
-  value: string;
-  className?: string;
+  amount: string;
+  suffix: string;
+  iconSrc: string;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5",
-        className,
-      )}
-    >
-      <dt className="text-xs text-ink-foreground/50">{label}</dt>
-      <dd className="mt-1 font-display text-base font-semibold tracking-tight sm:text-lg">
-        {value}
-      </dd>
+    <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-4 text-neutral-900 shadow-sm sm:px-5 sm:py-5">
+      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+        <img src={iconSrc} alt="" className="size-7 object-contain" aria-hidden />
+      </div>
+      <p className="min-w-0 text-sm leading-snug text-neutral-700 sm:text-[15px]">
+        <span>{label}: </span>
+        <span className="font-bold text-neutral-900">{amount}</span>
+        <span> {suffix}</span>
+      </p>
     </div>
   );
 }

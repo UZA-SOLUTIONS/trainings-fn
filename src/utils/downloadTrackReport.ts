@@ -12,12 +12,13 @@ const INK = { r: 32, g: 36, b: 34 };
 const MUTED = { r: 110, g: 118, b: 112 };
 const LINE = { r: 220, g: 224, b: 218 };
 const CARD = { r: 255, g: 255, b: 255 };
-const PAGE = { r: 248, g: 249, b: 247 };
+const PAGE = { r: 255, g: 255, b: 255 };
 const PRIMARY = { r: 30, g: 90, b: 62 };
 const VOLT = { r: 168, g: 196, b: 48 };
 const DANGER = { r: 180, g: 55, b: 45 };
 const TRACK = { r: 210, g: 216, b: 208 };
 const SOFT = { r: 236, g: 240, b: 234 };
+const AMBER = { r: 180, g: 130, b: 40 };
 
 type Rgb = { r: number; g: number; b: number };
 
@@ -35,6 +36,31 @@ const TRAINING_LABELS: Record<string, string> = {
   completed: "Completed",
   failed: "Did not pass",
 };
+
+async function loadBrandLogoPng(): Promise<{ dataUrl: string; w: number; h: number } | null> {
+  try {
+    const res = await fetch("/logo.avif");
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const bmp = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    const maxH = 120;
+    const scale = Math.min(1, maxH / bmp.height);
+    canvas.width = Math.max(1, Math.round(bmp.width * scale));
+    canvas.height = Math.max(1, Math.round(bmp.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close();
+    return {
+      dataUrl: canvas.toDataURL("image/png"),
+      w: canvas.width,
+      h: canvas.height,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function milestoneBarValue(status: TrackMilestoneStatus) {
   if (status === "complete") return 100;
@@ -62,8 +88,29 @@ function trainingPctOf(track: CandidateTrackView) {
 }
 
 function money(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(Number(n))) return "—";
-  return formatRwf(Number(n), { compact: true });
+  if (n == null || !Number.isFinite(Number(n))) return "-";
+  return pdfSafe(formatRwf(Number(n), { compact: true }));
+}
+
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return "-";
+  try {
+    return new Date(iso).toLocaleDateString("en-GB");
+  } catch {
+    return String(iso);
+  }
+}
+
+/** Helvetica in jsPDF cannot draw many Unicode glyphs (minus, middot, dashes). */
+function pdfSafe(text: string) {
+  return String(text)
+    .replace(/\u2212/g, "-")
+    .replace(/[\u2013\u2014\u2015]/g, "-")
+    .replace(/\u00B7|\u2022|\u2027/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\u00A0/g, " ");
 }
 
 class PdfPage {
@@ -75,15 +122,24 @@ class PdfPage {
   w: number;
   page = 1;
   code: string;
+  candidateName: string;
+  logo: { dataUrl: string; w: number; h: number } | null;
 
-  constructor(code: string) {
+  constructor(
+    code: string,
+    candidateName: string,
+    logo: { dataUrl: string; w: number; h: number } | null,
+  ) {
     this.doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     this.pageW = this.doc.internal.pageSize.getWidth();
     this.pageH = this.doc.internal.pageSize.getHeight();
     this.w = this.pageW - this.m * 2;
     this.code = code;
+    this.candidateName = candidateName;
+    this.logo = logo;
     this.fill(PAGE);
     this.doc.rect(0, 0, this.pageW, this.pageH, "F");
+    this.drawBrandHeader();
   }
 
   fill(c: Rgb) {
@@ -96,6 +152,49 @@ class PdfPage {
     this.doc.setTextColor(c.r, c.g, c.b);
   }
 
+  /** Top-left logo · top-right name + candidate ID (every page). */
+  drawBrandHeader() {
+    const headerH = 18;
+    this.y = this.m;
+
+    if (this.logo) {
+      const targetH = 10;
+      const aspect = this.logo.w / Math.max(1, this.logo.h);
+      const targetW = Math.min(42, targetH * aspect);
+      this.doc.addImage(
+        this.logo.dataUrl,
+        "PNG",
+        this.m,
+        this.y,
+        targetW,
+        targetH,
+        undefined,
+        "FAST",
+      );
+    } else {
+      this.doc.setFont("helvetica", "bold");
+      this.doc.setFontSize(14);
+      this.ink(PRIMARY);
+      this.doc.text("UZA Mobility", this.m, this.y + 7);
+    }
+
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(11);
+    this.ink(INK);
+    this.doc.text(this.candidateName, this.pageW - this.m, this.y + 4, { align: "right" });
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setFontSize(9);
+    this.ink(PRIMARY);
+    this.doc.text(this.code, this.pageW - this.m, this.y + 9.5, { align: "right" });
+
+    this.y = this.m + headerH;
+    this.stroke(LINE);
+    this.doc.setLineWidth(0.4);
+    this.doc.line(this.m, this.y - 2, this.pageW - this.m, this.y - 2);
+    // Space below header rule before body content
+    this.y += 8;
+  }
+
   ensure(h: number) {
     if (this.y + h <= this.pageH - 14) return;
     this.foot();
@@ -103,7 +202,7 @@ class PdfPage {
     this.page += 1;
     this.fill(PAGE);
     this.doc.rect(0, 0, this.pageW, this.pageH, "F");
-    this.y = this.m;
+    this.drawBrandHeader();
   }
 
   foot() {
@@ -113,17 +212,31 @@ class PdfPage {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(8);
     this.ink(MUTED);
-    this.doc.text(this.code, this.m, this.pageH - 5.5);
+    this.doc.text("UZA Mobility - Candidate track report", this.m, this.pageH - 5.5);
     this.doc.text(`${this.page}`, this.pageW - this.m, this.pageH - 5.5, { align: "right" });
   }
 
   title(text: string, size = 16) {
     this.ensure(10);
-    this.doc.setFont("helvetica", "normal");
+    this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(size);
-    this.ink(INK);
-    this.doc.text(text, this.m, this.y);
-    this.y += size * 0.45 + 2;
+    this.ink(PRIMARY);
+    this.doc.text(pdfSafe(text), this.m, this.y);
+    this.y += size * 0.42 + 2.5;
+  }
+
+  /** Section title left + status text right (no pill/button). */
+  titleWithStatus(text: string, status: string, statusColor: Rgb = PRIMARY, size = 13) {
+    this.ensure(10);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(size);
+    this.ink(PRIMARY);
+    this.doc.text(pdfSafe(text), this.m, this.y);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setFontSize(10);
+    this.ink(statusColor);
+    this.doc.text(pdfSafe(status), this.pageW - this.m, this.y, { align: "right" });
+    this.y += size * 0.42 + 3;
   }
 
   muted(text: string, size = 9) {
@@ -131,9 +244,88 @@ class PdfPage {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(size);
     this.ink(MUTED);
-    const lines = this.doc.splitTextToSize(text, this.w);
+    const lines = this.doc.splitTextToSize(pdfSafe(text), this.w);
     this.doc.text(lines, this.m, this.y);
-    this.y += lines.length * (size * 0.4) + 2;
+    this.y += lines.length * (size * 0.4) + 5;
+  }
+
+  /** Label · gap · value rows (one or two columns). */
+  summaryRows(rows: { label: string; value: string }[], cols = 2) {
+    const colGap = 8;
+    const colW = (this.w - (cols - 1) * colGap) / cols;
+    const labelCol = Math.min(38, colW * 0.42);
+    const valueGap = 4;
+    const rowH = 7.5;
+    const rowsNeeded = Math.ceil(rows.length / cols);
+    this.ensure(rowsNeeded * rowH + 2);
+    rows.forEach((row, i) => {
+      const col = i % cols;
+      const rowi = Math.floor(i / cols);
+      const x = this.m + col * (colW + colGap);
+      const y = this.y + rowi * rowH;
+      this.doc.setFont("helvetica", "bold");
+      this.doc.setFontSize(8);
+      this.ink(PRIMARY);
+      this.doc.text(pdfSafe(`${row.label}:`), x, y);
+      this.doc.setFont("helvetica", "normal");
+      this.doc.setFontSize(9);
+      this.ink(INK);
+      const valX = x + labelCol + valueGap;
+      const val =
+        this.doc.splitTextToSize(pdfSafe(row.value), colW - labelCol - valueGap)[0] ||
+        pdfSafe(row.value);
+      this.doc.text(val, valX, y);
+    });
+    this.y += rowsNeeded * rowH + 3;
+  }
+
+  /** Programme steps matching modal: tick circle for complete, dot for active, empty for pending. */
+  programmeSteps(
+    steps: { label: string; status: string; id?: string }[],
+    currentId?: string,
+  ) {
+    this.muted("Current programme step:", 9);
+    this.y += 3;
+    const rowH = 7;
+    this.ensure(steps.length * rowH + 2);
+    steps.forEach((m) => {
+      const completed = m.status === "complete" || m.status === "completed";
+      const active =
+        !completed &&
+        (m.id === currentId || m.status === "current" || m.status === "in_progress");
+      const cx = this.m + 2.2;
+      const cy = this.y - 1.2;
+      const r = 2.2;
+
+      if (completed) {
+        this.fill(PRIMARY);
+        this.stroke(PRIMARY);
+        this.doc.setLineWidth(0.4);
+        this.doc.circle(cx, cy, r, "FD");
+        this.stroke(CARD);
+        this.doc.setLineWidth(0.55);
+        this.doc.line(cx - 1.1, cy, cx - 0.25, cy + 1.1);
+        this.doc.line(cx - 0.25, cy + 1.1, cx + 1.3, cy - 1);
+      } else if (active) {
+        this.fill(PRIMARY);
+        this.stroke(PRIMARY);
+        this.doc.setLineWidth(0.4);
+        this.doc.circle(cx, cy, r, "FD");
+        this.fill(CARD);
+        this.doc.circle(cx, cy, 0.7, "F");
+      } else {
+        this.stroke(TRACK);
+        this.doc.setLineWidth(0.45);
+        this.doc.circle(cx, cy, r, "S");
+      }
+
+      this.doc.setFont("helvetica", completed || active ? "bold" : "normal");
+      this.doc.setFontSize(9);
+      this.ink(completed || active ? INK : MUTED);
+      this.doc.text(pdfSafe(m.label), this.m + 7, this.y);
+      this.y += rowH;
+    });
+    this.y += 2;
   }
 
   /** Section panel — flat fill only (no border / shadow). */
@@ -257,12 +449,12 @@ class PdfPage {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(8);
     this.ink(MUTED);
-    const lab = this.doc.splitTextToSize(label, labelW)[0] || label;
+    const lab = this.doc.splitTextToSize(pdfSafe(label), labelW)[0] || pdfSafe(label);
     this.doc.text(lab, x, y);
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(9);
     this.ink(accent || INK);
-    this.doc.text(value, x + w, y, { align: "right" });
+    this.doc.text(pdfSafe(value), x + w, y, { align: "right" });
   }
 
   kpiCard(
@@ -289,19 +481,19 @@ class PdfPage {
     this.doc.setFont("helvetica", "normal");
     this.doc.setFontSize(6.5);
     this.ink(MUTED);
-    this.doc.text(opts.title.toUpperCase(), x + pad, y + 5);
+    this.doc.text(pdfSafe(opts.title.toUpperCase()), x + pad, y + 5);
 
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(14);
     this.ink(INK);
-    const valueLines = this.doc.splitTextToSize(opts.value, Math.max(18, textRight));
+    const valueLines = this.doc.splitTextToSize(pdfSafe(opts.value), Math.max(18, textRight));
     this.doc.text(valueLines[0], x + pad, y + 13);
     if (opts.unit) {
       const vw = this.doc.getTextWidth(valueLines[0]);
       this.doc.setFont("helvetica", "normal");
       this.doc.setFontSize(7.5);
       this.ink(MUTED);
-      this.doc.text(opts.unit, x + pad + vw + 1.2, y + 12.5);
+      this.doc.text(pdfSafe(opts.unit), x + pad + vw + 1.2, y + 12.5);
     }
 
     // Chart sits in its own corner, clear of value text
@@ -320,20 +512,24 @@ class PdfPage {
 }
 
 /**
- * PDF mirrors the track page: same section titles, KPI cards with donuts,
- * garage bars, financing + milestone histograms — not a “dossier” layout.
+ * PDF mirrors the track dossier UI: brand header (logo · name/ID),
+ * candidate profile, wallet balances, garage, status KPIs, milestones, financing.
  */
-export function downloadTrackReportPdf(track: CandidateTrackView) {
+export async function downloadTrackReportPdf(track: CandidateTrackView) {
   const financing = resolveTrackFinancing(track);
   const wallet = resolveTrackWallet(track);
   const garage = resolveTrackGarage(track);
   const health = garage.health;
-  const p = new PdfPage(track.candidate_code);
+  const logo = await loadBrandLogoPng();
+  const p = new PdfPage(track.candidate_code, track.full_name, logo);
   const { doc } = p;
 
   const isCertified =
     track.training.status === "completed" || track.status === "graduated";
   const trainingPct = trainingPctOf(track);
+  const trainingLabel =
+    TRAINING_LABELS[track.training.status] ?? track.training.status;
+  const statusLabel = STATUS_LABELS[track.status] ?? track.status;
 
   const depositOffered = financing.deposit_offered_rwf;
   const depositTen = financing.deposit_ten_percent_rwf;
@@ -358,67 +554,84 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
     ? Math.round((completed / track.milestones.length) * 100)
     : 0;
 
-  // —— Header (same fields as track card) ——
-  p.title(track.full_name, 20);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  p.ink(PRIMARY);
-  doc.text(track.candidate_code, p.m, p.y);
-  p.y += 6;
-
+  // —— Candidate profile (matches dossier header + summary) ——
+  p.titleWithStatus(
+    "Candidate profile",
+    statusLabel,
+    track.status === "rejected" ? DANGER : PRIMARY,
+    13,
+  );
   p.muted(
     [
       isCertified ? "Certified" : "Not certified",
-      STATUS_LABELS[track.status] ?? track.status,
-      `Current stage: ${track.current_stage}`,
-    ].join("  ·  "),
+      `Current stage: ${track.current_stage || "-"}`,
+    ].join("  |  "),
+  );
+  p.y += 3;
+
+  const examScore =
+    track.training.exam_score != null ? `${track.training.exam_score}/100` : "0/100";
+  p.summaryRows(
+    [
+      { label: "Candidate ID", value: track.candidate_code },
+      { label: "Full name", value: track.full_name },
+      { label: "Phone", value: track.phone || "-" },
+      { label: "District", value: track.district || "-" },
+      {
+        label: "Cohort",
+        value: track.cohort
+          ? `${track.cohort.name}${track.cohort.code ? ` (${track.cohort.code})` : ""}`
+          : "-",
+      },
+      { label: "Location", value: track.cohort?.location || "-" },
+      { label: "Partner bank", value: track.cohort?.partner_bank || "-" },
+      { label: "Training", value: trainingLabel },
+      { label: "Exam score", value: examScore },
+      { label: "Applied", value: formatDate(track.applied_at) },
+      { label: "Current stage", value: track.current_stage || "-" },
+      {
+        label: "Vehicle",
+        value: financing.target_vehicle_name
+          ? `${financing.target_vehicle_name}${
+              vehiclePrice ? ` - ${money(vehiclePrice)}` : ""
+            }`
+          : "-",
+      },
+    ],
+    2,
   );
 
-  const meta: { label: string; value: string }[] = [];
-  if (track.cohort) {
-    meta.push(
-      { label: "Cohort", value: track.cohort.name },
-      { label: "Start", value: track.cohort.start_date || "To be confirmed" },
-      { label: "Location", value: track.cohort.location || "TBC" },
-      { label: "Partner bank", value: track.cohort.partner_bank || "—" },
-    );
-  }
-  meta.push({
-    label: "EV of choice",
-    value: financing.target_vehicle_name?.trim() || "Not selected yet",
-  });
-  meta.push({ label: "Applied", value: new Date(track.applied_at).toLocaleDateString("en-GB") });
+  const currentMilestone =
+    track.milestones.find((m) => m.status === "current" || m.status === "in_progress") ??
+    track.milestones.find((m) => m.status === "pending") ??
+    track.milestones[track.milestones.length - 1];
+  p.programmeSteps(track.milestones.slice(0, 5), currentMilestone?.id);
 
-  const metaH = 8 + Math.ceil(meta.length / 3) * 10;
-  const metaBox = p.cardStart(metaH);
-  meta.forEach((row, i) => {
-    const col = i % 3;
-    const rowi = Math.floor(i / 3);
-    const cx = metaBox.x + 4 + col * ((metaBox.w - 8) / 3);
-    const cy = metaBox.y + 6 + rowi * 10;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    p.ink(MUTED);
-    doc.text(row.label.toUpperCase(), cx, cy);
-    doc.setFontSize(9);
-    p.ink(INK);
-    const lines = doc.splitTextToSize(row.value, (metaBox.w - 12) / 3);
-    doc.text(lines[0], cx, cy + 4);
-  });
-  p.cardEnd(metaBox.y, metaH);
+  // —— Wallet balances ——
+  p.titleWithStatus(
+    "Wallet balances",
+    wallet.live ? "Active" : "Not active",
+    wallet.live ? PRIMARY : AMBER,
+    12,
+  );
 
-  // —— Wallet (page panel) ——
-  p.title("Your UZA wallet", 13);
-  p.muted(`EV of choice: ${financing.target_vehicle_name?.trim() || "Not selected yet"}`);
-  const wh = 28;
+  const wh = 22;
   const wb = p.cardStart(wh);
-  const rows = [
+  [
     { label: "Available", value: money(wallet.balances.available_rwf) },
     { label: "Savings locked", value: money(wallet.balances.savings_locked_rwf) },
     { label: "Commission owed", value: money(wallet.balances.commission_owed_rwf) },
-  ];
-  rows.forEach((r, i) => {
-    p.row(wb.x + 5, wb.y + 8 + i * 7, wb.w - 10, r.label, r.value);
+  ].forEach((r, i) => {
+    const colW = (wb.w - 12) / 3;
+    const cx = wb.x + 4 + i * colW;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    p.ink(PRIMARY);
+    doc.text(r.label, cx, wb.y + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    p.ink(INK);
+    doc.text(r.value, cx, wb.y + 16);
   });
   p.cardEnd(wb.y, wh);
 
@@ -441,12 +654,28 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
   });
   p.cardEnd(ab.y, appH);
 
-  // —— Garage: bars full width, then metrics (no bordered nested boxes) ——
-  p.title("Car health & diagnosis", 13);
+  p.summaryRows(
+    [
+      {
+        label: "EV of choice",
+        value: financing.target_vehicle_name?.trim() || "Not selected yet",
+      },
+      { label: "UZA ID", value: wallet.uza_id || track.candidate_code },
+    ],
+    2,
+  );
+
+  // —— Garage ——
+  p.titleWithStatus(
+    "Car health & diagnosis",
+    garage.live ? "Active" : "Awaiting garage",
+    garage.live ? PRIMARY : AMBER,
+    12,
+  );
   p.muted(
     `EV of choice: ${garage.vehicle.model || financing.target_vehicle_name || "Not selected yet"}${
-      garage.vehicle.plate ? ` · ${garage.vehicle.plate}` : ""
-    }  ·  ${garage.live ? "Live from garage" : "Awaiting garage"}`,
+      garage.vehicle.plate ? ` - ${garage.vehicle.plate}` : ""
+    }`,
   );
 
   const gh = 92;
@@ -582,7 +811,7 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
       ? money(remainingToTen).replace(" RWF", "")
       : depositTen > 0
         ? String(depositPct)
-        : "—";
+            : "-";
   const depositUnit = depositTen > 0 && remainingToTen > 0 ? "RWF" : depositTen > 0 ? "%" : undefined;
 
   p.kpiCard(p.m + kpi2W + kpi2Gap, kpi2Y, kpi2W, kpiH, {
@@ -606,7 +835,7 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
 
   p.kpiCard(p.m + (kpi2W + kpi2Gap) * 2, kpi2Y, kpi2W, kpiH, {
     title: "Bank financing",
-    value: bankPays ? money(bankPays).replace(" RWF", "") : "—",
+    value: bankPays ? money(bankPays).replace(" RWF", "") : "-",
     unit: bankPays ? "RWF" : undefined,
     segments: [
       { value: depositOffered || 1, color: PRIMARY },
@@ -633,12 +862,12 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
         value:
           track.training.attendance_percentage != null
             ? `${track.training.attendance_percentage}%`
-            : "—",
+            : "-",
         accent: VOLT,
       },
       {
         label: "Exam score",
-        value: track.training.exam_score != null ? `${track.training.exam_score}%` : "—",
+        value: track.training.exam_score != null ? `${track.training.exam_score}%` : "0%",
         accent: PRIMARY,
       },
       {
@@ -651,7 +880,9 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
 
   // —— Milestone timeline: tall chart, labels under bars ——
   p.title("Milestone timeline", 13);
-  p.muted(`${completed}/${track.milestones.length} stages complete · ${milestonePct}% of programme journey`);
+  p.muted(
+    `${completed}/${track.milestones.length} stages complete - ${milestonePct}% of programme journey`,
+  );
   const mh = 58;
   const mb = p.cardStart(mh);
   p.histogram(
@@ -670,17 +901,16 @@ export function downloadTrackReportPdf(track: CandidateTrackView) {
 
   // —— Financing: figures row, then full-width chart ——
   p.title("Financing breakdown", 13);
-  p.muted(
-    [
-      financing.target_vehicle_name
-        ? `EV of choice · ${financing.target_vehicle_name}`
-        : "Vehicle financing",
-      vehiclePrice > 0 ? money(vehiclePrice) : null,
-      "bank pays price − contribution",
-    ]
-      .filter(Boolean)
-      .join(" · "),
-  );
+  {
+    const vehicleBit = financing.target_vehicle_name?.trim() || "Vehicle financing";
+    const priceBit = vehiclePrice > 0 ? money(vehiclePrice) : null;
+    const parts = [
+      `EV of choice: ${vehicleBit}`,
+      priceBit,
+      "Bank pays the remaining price after the candidate contribution",
+    ].filter(Boolean);
+    p.muted(parts.join(" - "));
+  }
 
   const fh = 72;
   const fb = p.cardStart(fh);

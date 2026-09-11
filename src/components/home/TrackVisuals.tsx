@@ -1,5 +1,4 @@
 import type { CandidateTrackView, TrackMilestoneStatus } from "@/services/candidateService";
-import { Card } from "@/components/ui/card";
 import { DonutChart, HistogramChart } from "@/components/charts/ChartPrimitives";
 import { formatRwf } from "@/utils/financing";
 import { cn } from "@/lib/utils";
@@ -60,6 +59,7 @@ function AnalysisKpi({
   tone = "neutral",
   segments,
   rows,
+  embedded = false,
 }: {
   title: string;
   value: string;
@@ -68,9 +68,15 @@ function AnalysisKpi({
   tone?: Tone;
   segments: { value: number; color: string; label: string }[];
   rows: { label: string; value: string; accent?: string }[];
+  embedded?: boolean;
 }) {
   return (
-    <Card className="flex min-w-0 flex-col border-border/70 p-5 sm:p-6">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col",
+        embedded ? "py-1" : "rounded-xl border border-border/70 p-5 sm:p-6",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
@@ -106,11 +112,17 @@ function AnalysisKpi({
           </li>
         ))}
       </ul>
-    </Card>
+    </div>
   );
 }
 
-export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
+export function TrackVisualDashboard({
+  track,
+  embedded = false,
+}: {
+  track: CandidateTrackView;
+  embedded?: boolean;
+}) {
   const milestonePct = milestoneProgressPercent(track.milestones);
   const completedMilestones = track.milestones.filter((m) => m.status === "complete").length;
   const activeMilestones = track.milestones.filter((m) =>
@@ -156,13 +168,17 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
   const garageScore = garage.health?.overall_score ?? 0;
 
   return (
-    <div className="space-y-8">
+    <div className={cn(embedded ? "border-t border-border/40 p-5 sm:p-6" : "space-y-8")}>
+      <div className={cn(!embedded && "space-y-8", embedded && "space-y-6")}>
       <div>
-        <h3 className={cn(NAME, "text-xl sm:text-2xl")}>Status at a glance</h3>
+        <h3 className={cn(NAME, embedded ? "font-display text-base font-semibold text-primary sm:text-lg" : "text-xl sm:text-2xl")}>
+          Status at a glance
+        </h3>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <AnalysisKpi
+          embedded={embedded}
           title="Wallet app"
           value={`${walletAvailable}`}
           unit="RWF"
@@ -182,6 +198,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           ]}
         />
         <AnalysisKpi
+          embedded={embedded}
           title="Garage health"
           value={`${garageScore}`}
           unit="/100"
@@ -214,6 +231,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
           ]}
         />
         <AnalysisKpi
+          embedded={embedded}
           title="Programme journey"
           value={`${milestonePct}`}
           unit="%"
@@ -237,6 +255,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <AnalysisKpi
+          embedded={embedded}
           title="Document file"
           value={`${track.documents_summary.percent}`}
           unit="%"
@@ -259,6 +278,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         />
 
         <AnalysisKpi
+          embedded={embedded}
           title="Deposit readiness"
           value={
             !depositRequired
@@ -301,6 +321,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         />
 
         <AnalysisKpi
+          embedded={embedded}
           title="Bank financing"
           value={bankPays ? formatRwf(bankPays, { compact: true }).replace(" RWF", "") : "—"}
           unit={bankPays ? "RWF" : undefined}
@@ -338,6 +359,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         />
 
         <AnalysisKpi
+          embedded={embedded}
           title="Training readiness"
           value={`${trainingPct}`}
           unit="%"
@@ -376,7 +398,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         />
       </div>
 
-      <Card className="border-border/70 p-6 sm:p-8">
+      <div className={cn(embedded ? "py-2" : "rounded-xl border border-border/70 p-6 sm:p-8")}>
         <p className={cn(NAME, "text-xl sm:text-2xl")}>Milestone timeline</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -405,9 +427,9 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
             valueFormatter={(n) => `${n}%`}
           />
         </div>
-      </Card>
+      </div>
 
-      <Card className="border-border/70 p-6 sm:p-8">
+      <div className={cn(embedded ? "py-2" : "rounded-xl border border-border/70 p-6 sm:p-8")}>
         <p className={cn(NAME, "text-xl sm:text-2xl")}>Financing breakdown</p>
         <p className="mt-2 text-base text-muted-foreground">
           {financing.target_vehicle_name
@@ -419,7 +441,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-primary/25 bg-primary/[0.06] px-4 py-5">
+          <div className="px-0 py-2">
             <p className="font-display text-base font-medium text-muted-foreground">
               Deposit offered
             </p>
@@ -427,14 +449,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
               {formatRwf(depositOffered, { compact: true })}
             </p>
           </div>
-          <div
-            className={cn(
-              "rounded-xl border px-4 py-5",
-              remainingToTen > 0
-                ? "border-destructive/25 bg-destructive/[0.06]"
-                : "border-primary/25 bg-primary/[0.06]",
-            )}
-          >
+          <div className="px-0 py-2">
             <p className="font-display text-base font-medium text-muted-foreground">
               Remaining to 10%
             </p>
@@ -448,7 +463,7 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
               {formatRwf(remainingToTen, { compact: true })}
             </p>
           </div>
-          <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-5">
+          <div className="px-0 py-2">
             <p className="font-display text-base font-medium text-muted-foreground">
               Bank pays (remaining)
             </p>
@@ -528,12 +543,12 @@ export function TrackVisualDashboard({ track }: { track: CandidateTrackView }) {
         </dl>
 
         {financing.needs_uza_access_support && (
-          <p className="mt-5 rounded-xl border border-volt/30 bg-volt/10 px-4 py-3 text-sm leading-relaxed text-foreground sm:text-base">
+          <p className="mt-5 text-sm leading-relaxed text-foreground sm:text-base">
             UZA Access top-up requested — can cover the remaining deposit gap to reach 10%.
           </p>
         )}
-      </Card>
-
+      </div>
+      </div>
     </div>
   );
 }

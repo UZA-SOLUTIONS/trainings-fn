@@ -1,118 +1,103 @@
-import { FiBriefcase, FiTruck, FiUser } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { PARTNER_PORTALS } from "@/content/marketing";
-import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { cn } from "@/lib/utils";
 
-const VIEWPOINT_ICONS = [FiUser, FiBriefcase, FiTruck] as const;
+const INTERVAL_MS = 9000;
+const FADE_MS = 1200;
 
-/** Viewpoint panels: driver, bank, and UZA operations — one shared record. */
+/** Cinematic viewpoints: calm crossfade between slides. */
 export function PartnersViewpoints() {
+  const [index, setIndex] = useState(0);
+  const [textVisible, setTextVisible] = useState(true);
+  const count = PARTNER_PORTALS.length;
+  const active = PARTNER_PORTALS[index]!;
+
+  useEffect(() => {
+    if (count < 2) return;
+    const id = window.setInterval(() => {
+      go(1);
+    }, INTERVAL_MS);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- interval resets on index change
+  }, [count, index]);
+
+  function go(delta: number) {
+    setTextVisible(false);
+    window.setTimeout(() => {
+      setIndex((i) => (i + delta + count) % count);
+      requestAnimationFrame(() => setTextVisible(true));
+    }, FADE_MS / 2);
+  }
+
   return (
-    <div className="relative overflow-hidden bg-background section-y">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-90"
-        aria-hidden
-        style={{
-          backgroundImage: `
-            radial-gradient(ellipse 70% 50% at 0% 0%, oklch(0.35 0.06 158 / 0.08), transparent 55%),
-            radial-gradient(ellipse 55% 40% at 100% 100%, oklch(0.85 0.16 128 / 0.12), transparent 50%)
-          `,
-        }}
-      />
-
-      <div className="container-page relative">
-        <header className="max-w-3xl">
-          <ScrollReveal
-            origin="left"
-            baseOpacity={0.1}
-            enableBlur
-            baseRotation={2}
-            blurStrength={4}
-            containerClassName="text-foreground"
-            textClassName="sm:text-[2rem] md:text-[2.5rem]"
-          >
-            Same data, three points of view.
-          </ScrollReveal>
-          <ScrollReveal
-            as="p"
-            origin="left"
-            baseOpacity={0.15}
-            enableBlur
-            baseRotation={1.5}
-            blurStrength={3}
-            containerClassName="mt-3 text-muted-foreground sm:mt-4"
-            textClassName="scroll-reveal-text--body"
-          >
-            Each partner bank keeps its own checklist, deposit rule, and collateral policy. One shared
-            UZA record feeds the driver, the bank, and operations without rebuilding the platform.
-          </ScrollReveal>
-        </header>
-
+    <div className="bg-background">
+      <div className="px-6 pb-6 pt-12 text-center sm:px-10 sm:pb-8 sm:pt-14 md:px-16 md:pt-16">
         <div
-          className="partners-shared mt-10 flex items-center gap-3 sm:mt-12 sm:gap-4"
-          aria-hidden
+          className={cn(
+            "transition-all ease-[cubic-bezier(0.22,1,0.36,1)]",
+            textVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-1 opacity-0",
+          )}
+          style={{ transitionDuration: `${FADE_MS}ms` }}
         >
-          <span className="h-px flex-1 bg-border/80" />
-          <span className="shrink-0 rounded-xl border border-border/70 bg-background px-3.5 py-1.5 text-eyebrow text-muted-foreground">
-            One shared UZA record
-          </span>
-          <span className="h-px flex-1 bg-border/80" />
+          <h3 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+            {active.title}
+          </h3>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-neutral-500 sm:mt-4 sm:text-base md:text-lg">
+            {active.lens}
+          </p>
+          <Link
+            to={active.cta.href}
+            className="mt-6 inline-flex h-10 min-w-[9rem] items-center justify-center rounded-md border border-neutral-300 bg-white px-5 text-sm font-medium text-neutral-900 transition-colors hover:bg-white/90 sm:mt-7 sm:h-11"
+          >
+            {active.cta.label}
+          </Link>
         </div>
+      </div>
 
-        <div className="relative mt-8 grid gap-4 sm:mt-10 sm:grid-cols-3 sm:gap-5 lg:gap-6">
-          <div
-            className="pointer-events-none absolute left-[16.5%] right-[16.5%] top-0 hidden h-px bg-border/60 sm:block"
-            aria-hidden
+      <div className="relative w-full overflow-hidden">
+        {PARTNER_PORTALS.map((p, i) => (
+          <img
+            key={p.title}
+            src={p.image}
+            alt={p.imageAlt}
+            className={cn(
+              "h-[58vh] w-full object-cover object-center transition-opacity ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-[62vh] md:h-[68vh] lg:h-[72vh]",
+              i === 0 ? "relative" : "absolute inset-0",
+              i === index ? "opacity-100" : "opacity-0",
+            )}
+            style={{ transitionDuration: `${FADE_MS}ms` }}
+            aria-hidden={i !== index}
           />
+        ))}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-background from-0% via-background/90 via-35% to-transparent to-100% sm:h-40 md:h-48"
+          aria-hidden
+        />
 
-          {PARTNER_PORTALS.map((p, i) => {
-            const Icon = VIEWPOINT_ICONS[i] ?? FiUser;
-            const index = String(i + 1).padStart(2, "0");
-
-            return (
-              <article
-                key={p.title}
-                className="partners-lens group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-border/70 bg-background/90 p-6 backdrop-blur-sm transition-[border-color,transform] duration-300 hover:-translate-y-1 hover:border-primary/40 sm:rounded-[2rem] sm:p-7 lg:p-8"
-                style={{ animationDelay: `${80 + i * 90}ms` }}
-              >
-                <div className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-volt transition-transform duration-300 group-hover:scale-x-100" />
-
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-volt group-hover:text-volt-foreground">
-                    <Icon className="size-5" strokeWidth={1.75} aria-hidden />
-                  </span>
-                  <span className="font-display text-sm font-medium tabular-nums tracking-wide text-muted-foreground">
-                    {index}
-                  </span>
-                </div>
-
-                <p className="mt-6 text-eyebrow text-muted-foreground">Viewpoint</p>
-
-                <h3 className="mt-2 font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  {p.title}
-                </h3>
-
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  {p.lens}
-                </p>
-
-                <ul className="mt-6 space-y-3 border-t border-border/60 pt-5">
-                  {p.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2.5 text-sm leading-snug text-foreground/90">
-                      <span
-                        className={cn(
-                          "mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70 transition-colors duration-300 group-hover:bg-volt",
-                        )}
-                        aria-hidden
-                      />
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            );
-          })}
-        </div>
+        {count > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous viewpoint"
+              onClick={() => go(-1)}
+              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md bg-white/25 text-white backdrop-blur-[2px] transition-colors hover:bg-white/40 sm:left-5 sm:h-11 sm:w-11"
+            >
+              <FiChevronLeft className="size-6" strokeWidth={1.75} aria-hidden />
+            </button>
+            <button
+              type="button"
+              aria-label="Next viewpoint"
+              onClick={() => go(1)}
+              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md bg-white/25 text-white backdrop-blur-[2px] transition-colors hover:bg-white/40 sm:right-5 sm:h-11 sm:w-11"
+            >
+              <FiChevronRight className="size-6" strokeWidth={1.75} aria-hidden />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
