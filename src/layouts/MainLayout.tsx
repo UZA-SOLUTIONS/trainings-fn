@@ -17,8 +17,8 @@ export function MainLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {!isTrack && <Navbar />}
-      {!overlayHero && !isTrack && (
+      <Navbar />
+      {!overlayHero && (
         <div className="h-14 sm:h-16 md:h-[4.25rem]" aria-hidden />
       )}
       <div className="flex min-h-0 flex-1 flex-col">

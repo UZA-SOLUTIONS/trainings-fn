@@ -49,7 +49,7 @@ export function TrackResultModal({
       <div
         className={cn(
           "relative z-[1] flex h-full w-full max-w-[min(100%,92rem)] flex-col overflow-hidden rounded-2xl",
-          "border-2 border-primary/40 bg-background shadow-2xl",
+          "bg-background shadow-2xl",
         )}
       >
         <button
