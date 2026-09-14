@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { CohortClassroomHeader } from "@/components/classroom/CohortClassroomHeader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCohort } from "@/services/cohortService";
 import { deleteCandidate, updateCandidate } from "@/services/candidateService";
@@ -630,20 +631,12 @@ export default function CohortDetail() {
 
   return (
     <div>
-      <Link
-        to="/dashboard?tab=candidates"
-        className="inline-flex text-base text-muted-foreground transition-colors hover:text-foreground"
-      >
-        ← Candidates
-      </Link>
+      <CohortClassroomHeader cohort={cohort} loading={isPending} />
 
       <div className="mt-6">
         {isPending && <p className="text-base text-muted-foreground">Loading candidates…</p>}
         {cohort && (
           <>
-            <p className="text-eyebrow text-muted-foreground">{cohort.code}</p>
-            <h1 className="mt-2 font-display text-4xl font-bold">{cohort.name}</h1>
-
             <Section title={`Enrolled (${enrolled.length})`}>
               <CandidateTable rows={enrolled} empty="No candidates enrolled yet." />
             </Section>

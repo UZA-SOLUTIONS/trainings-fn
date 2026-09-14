@@ -12,7 +12,11 @@ export type PermissionAction =
   | "candidates.documents"
   | "candidates.loan"
   | "candidates.delete"
-  | "staff.manage";
+  | "staff.manage"
+  | "attendance.write"
+  | "assessments.write"
+  | "issues.write"
+  | "reports.read";
 
 const TAB_ACCESS: Record<DashboardTab, StaffUser["role"][]> = {
   overview: ["admin", "instructor", "bank_partner"],
@@ -53,6 +57,10 @@ export function can(user: StaffUser | null, action: PermissionAction): boolean {
       return user.role === "instructor" || user.role === "bank_partner";
     case "candidates.membership":
     case "candidates.training":
+    case "attendance.write":
+    case "assessments.write":
+    case "issues.write":
+    case "reports.read":
       return user.role === "instructor";
     case "candidates.documents":
     case "candidates.loan":

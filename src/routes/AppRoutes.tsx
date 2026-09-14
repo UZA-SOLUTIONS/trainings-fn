@@ -17,6 +17,10 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Courses = lazy(() => import("@/pages/Courses"));
 const Modules = lazy(() => import("@/pages/Modules"));
 const CohortDetail = lazy(() => import("@/pages/CohortDetail"));
+const CohortAttendance = lazy(() => import("@/pages/CohortAttendance"));
+const CohortAssessments = lazy(() => import("@/pages/CohortAssessments"));
+const CohortIssues = lazy(() => import("@/pages/CohortIssues"));
+const CohortReports = lazy(() => import("@/pages/CohortReports"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function FallBack() {
@@ -65,6 +69,10 @@ export function AppRoutes() {
             <Route path="/manage" element={<Navigate to="/dashboard?tab=overview" replace />} />
             <Route path="/institutions" element={<Navigate to="/dashboard?tab=banks" replace />} />
             <Route path="/cohorts/:cohortId" element={<CohortDetail />} />
+            <Route path="/cohorts/:cohortId/attendance" element={<CohortAttendance />} />
+            <Route path="/cohorts/:cohortId/assessments" element={<CohortAssessments />} />
+            <Route path="/cohorts/:cohortId/issues" element={<CohortIssues />} />
+            <Route path="/cohorts/:cohortId/reports" element={<CohortReports />} />
           </Route>
         </Route>
       </Routes>
