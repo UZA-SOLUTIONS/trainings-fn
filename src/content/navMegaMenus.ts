@@ -50,7 +50,7 @@ export const PROGRAMME_MEGA: NavMegaMenuConfig = {
       description:
         "Choose cash, split payment, or bank-financed options. Model your contribution and see how UZA Access can bridge deposit gaps.",
       cta: "Explore financing",
-      to: "/#financing",
+      to: "/financing",
       image: "/ev.avif",
     },
     {
@@ -108,7 +108,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
   id: "financing",
   label: "Financing",
   eyebrow: "Financing",
-  path: "/",
+  path: "/financing",
   items: [
     {
       id: "overview",
@@ -117,7 +117,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "Know the daily number before you sign. Compare Cash, Split, and bank-financed paths, then plan your deposit including UZA Access.",
       cta: "Explore financing",
-      to: "/#financing",
+      to: "/financing",
       image: "/ev.avif",
     },
     {
@@ -127,7 +127,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "Cash, Split, or Financed. Every path ends in an EV. Pick one, then compare the numbers in the calculator.",
       cta: "See buy options",
-      to: "/#offers",
+      to: "/financing#pay-in-full",
       image: "/1.jpg",
     },
     {
@@ -137,7 +137,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "Full payment before the container sails earns a 3% discount off vehicle cost, applied at invoice.",
       cta: "Model cash",
-      to: "/?option=cash#calculator",
+      to: "/financing#pay-in-full",
       image: "/bg.jpg",
     },
     {
@@ -147,7 +147,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "Lock your unit with 30%, settle the balance when the vehicle is handed over. Discount applies to the full price.",
       cta: "Model split",
-      to: "/?option=split#calculator",
+      to: "/financing#split",
       image: "/hero.avif",
     },
     {
@@ -157,7 +157,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "The minimum driver contribution. The bank lends the rest; UZA Access can bridge the gap to the required deposit.",
       cta: "Model financed",
-      to: "/?option=financed#calculator",
+      to: "/financing#bank-financed",
       image: "/ev.avif",
     },
     {
@@ -167,7 +167,7 @@ export const FINANCING_MEGA: NavMegaMenuConfig = {
       description:
         "Toggle Cash, Split, or Financed and estimate what you would pay. Final terms come from your partner bank.",
       cta: "Open calculator",
-      to: "/#calculator",
+      to: "/financing#calculator",
       image: "/bg.jpg",
     },
   ],

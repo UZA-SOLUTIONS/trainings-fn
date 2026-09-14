@@ -44,7 +44,7 @@ export default function Requirements() {
               Start your application
             </Link>
             <Link
-              to="/#financing"
+              to="/financing"
               className="inline-flex h-10 min-w-[14rem] items-center justify-center rounded-md bg-volt px-6 text-sm font-medium text-volt-foreground transition-colors hover:bg-volt/90 sm:h-11 sm:min-w-[15.5rem] sm:text-[15px]"
             >
               See financing

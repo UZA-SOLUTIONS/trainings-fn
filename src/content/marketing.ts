@@ -48,7 +48,7 @@ export const HOME_HERO_SLIDES = [
     title: "Own the EV you drive.",
     subtitle: "Apply for training and start your path to ownership",
     primary: { label: "Apply now", href: "/apply" },
-    secondary: { label: "See financing", href: "/#financing" },
+    secondary: { label: "See financing", href: "/financing" },
   },
   {
     src: "/hero.avif",
@@ -143,7 +143,7 @@ export const PARTNER_PORTALS = [
     lens: "Risk, equity, and cohort readiness",
     image: "/viewpoint-bank-ev.png",
     imageAlt: "Electric vehicle for bank financing review",
-    cta: { label: "Financing", href: "/#financing" },
+    cta: { label: "Financing", href: "/financing" },
   },
   {
     title: "UZA operations",

@@ -8,8 +8,10 @@ import { LoadingSpinner } from "@/components/feedback/LoadingSpinner";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Track = lazy(() => import("@/pages/Track"));
+const About = lazy(() => import("@/pages/About"));
 const Apply = lazy(() => import("@/pages/Apply"));
 const Requirements = lazy(() => import("@/pages/Requirements"));
+const Financing = lazy(() => import("@/pages/Financing"));
 const BuyOption = lazy(() => import("@/pages/BuyOption"));
 const ExpoNews = lazy(() => import("@/pages/ExpoNews"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -37,13 +39,11 @@ export function AppRoutes() {
             path="/programme"
             element={<Navigate to={{ pathname: "/", hash: "path" }} replace />}
           />
-          <Route
-            path="/financing"
-            element={<Navigate to={{ pathname: "/", hash: "financing" }} replace />}
-          />
           <Route path="/training" element={<Navigate to="/apply" replace />} />
           <Route path="/track" element={<Track />} />
           <Route path="/requirements" element={<Requirements />} />
+          <Route path="/financing" element={<Financing />} />
+          <Route path="/about" element={<About />} />
           <Route path="/buy/:slug" element={<BuyOption />} />
           <Route path="/news/:slug" element={<ExpoNews />} />
           <Route path="/apply" element={<Apply />} />

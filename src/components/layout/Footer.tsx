@@ -11,10 +11,11 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 const PROGRAMME = [
+  { to: "/about", label: "About Us" },
   { to: "/#path", label: "How it works" },
   { to: "/apply", label: "Apply for training" },
-  { to: "/#financing", label: "Financing" },
-  { to: "/#offers", label: "Buy options" },
+  { to: "/financing", label: "Financing" },
+  { to: "/financing#pay-in-full", label: "Buy options" },
   { to: "/#partners", label: "Partners" },
 ];
 

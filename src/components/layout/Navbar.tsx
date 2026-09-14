@@ -4,15 +4,21 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { to: "/#path", label: "About Us" },
-  { to: "/#financing", label: "Financing" },
+  { to: "/about", label: "About Us" },
+  { to: "/financing", label: "Financing" },
   { to: "/requirements", label: "Requirements" },
   { to: "/track", label: "Track" },
   { to: "/apply", label: "Apply" },
 ] as const;
 
 /** Pages whose first viewport is a full-bleed hero under a transparent nav. */
-const HERO_OVERLAY_PATHS = new Set(["/", "/track", "/requirements"]);
+const HERO_OVERLAY_PATHS = new Set([
+  "/",
+  "/track",
+  "/requirements",
+  "/financing",
+  "/about",
+]);
 
 export function Navbar() {
   const [open, setOpen] = useState(false);

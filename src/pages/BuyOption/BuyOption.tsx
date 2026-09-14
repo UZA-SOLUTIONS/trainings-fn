@@ -7,7 +7,7 @@ export default function BuyOption() {
   const option = getBuyOptionBySlug(slug);
 
   if (!option) {
-    return <Navigate to="/#financing" replace />;
+    return <Navigate to="/financing" replace />;
   }
 
   return (

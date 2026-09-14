@@ -57,7 +57,7 @@ export default function ExpoNews() {
             Apply now
           </Link>
           <Link
-            to="/#financing"
+            to="/financing"
             className="inline-flex h-10 min-w-[12rem] items-center justify-center rounded-md border border-neutral-300 bg-white px-6 text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-50 sm:h-11"
           >
             See financing

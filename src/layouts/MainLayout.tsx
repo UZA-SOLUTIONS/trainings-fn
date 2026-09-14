@@ -8,6 +8,8 @@ const OVERLAY_PATHS = new Set([
   "/",
   "/track",
   "/requirements",
+  "/financing",
+  "/about",
 ]);
 
 export function MainLayout() {
