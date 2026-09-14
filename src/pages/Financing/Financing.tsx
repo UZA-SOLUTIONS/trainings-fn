@@ -49,9 +49,6 @@ export default function Financing() {
           <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl animate-in fade-in slide-in-from-bottom-2 duration-700">
             Financing
           </h1>
-          <p className="mx-auto mt-3 max-w-lg text-sm font-medium tracking-wide text-white/95 underline decoration-white/75 underline-offset-[5px] sm:mt-3.5 sm:text-base md:text-lg animate-in fade-in duration-700">
-            Three ways in. Every one ends in an EV.
-          </p>
 
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:mt-9 sm:flex-row sm:gap-4 animate-in fade-in slide-in-from-bottom-3 duration-700">
             <a

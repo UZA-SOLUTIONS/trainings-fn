@@ -16,12 +16,7 @@ export function FinancingSection({ option, onOptionChange }: FinancingSectionPro
     <section id="financing" className="scroll-mt-20 border-t border-border/50 bg-muted/30">
       <div className="section-y">
         <div className="container-page">
-          <div id="offers" className="flex scroll-mt-20 flex-wrap items-end justify-between gap-4">
-            <div className="max-w-3xl">
-              <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
-                Three ways in. Every one ends in an EV.
-              </h2>
-            </div>
+          <div id="offers" className="flex scroll-mt-20 flex-wrap items-end justify-end gap-4">
             <Button asChild variant="outline" className="shadow-none">
               <a href="#calculator" className="inline-flex items-center gap-2">
                 Open calculator
