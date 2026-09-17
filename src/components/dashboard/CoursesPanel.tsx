@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Draft = {
   id?: string;
@@ -59,10 +60,11 @@ export function CoursesPanel() {
   const { can } = useAuth();
   const canWrite = can("courses.write");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Course | null>(null);
 
   const { data: courses = [], isPending, isError, error, refetch } = useQuery({
     queryKey: ["courses"],
-    queryFn: listCourses,
+    queryFn: () => listCourses(),
   });
 
   const saveMutation = useMutation({
@@ -90,6 +92,7 @@ export function CoursesPanel() {
     mutationFn: deleteCourse,
     onSuccess: () => {
       toast.success("Course deleted");
+      setPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["modules"] });
     },
@@ -108,14 +111,7 @@ export function CoursesPanel() {
   }
 
   function confirmDelete(course: Course) {
-    if (
-      !window.confirm(
-        `Delete course “${course.name}”? Its modules will also be deleted.`,
-      )
-    ) {
-      return;
-    }
-    deleteMutation.mutate(course.id);
+    setPendingDelete(course);
   }
 
   return (
@@ -296,6 +292,24 @@ export function CoursesPanel() {
           </Table>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Delete course"
+        description={
+          pendingDelete
+            ? `Delete course “${pendingDelete.name}”? Its modules will also be deleted.`
+            : ""
+        }
+        confirmLabel="Delete course"
+        pending={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (pendingDelete) await deleteMutation.mutateAsync(pendingDelete.id);
+        }}
+      />
     </div>
   );
 }

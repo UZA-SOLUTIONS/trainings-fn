@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ReasonDialog } from "@/components/ui/reason-dialog";
 
 const STATUSES: CandidateStatus[] = [
   "enrolled",
@@ -103,6 +105,8 @@ export function CandidatesPanel({
   const canDelete = can("candidates.delete");
 
   const [search, setSearch] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Candidate | null>(null);
+  const [rejecting, setRejecting] = useState<Candidate | null>(null);
   const [cohortFilter, setCohortFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [trainingFilter, setTrainingFilter] = useState<string>(
@@ -115,6 +119,7 @@ export function CandidatesPanel({
       updateCandidate(id, patch),
     onSuccess: () => {
       toast.success("Candidate updated");
+      setRejecting(null);
       queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
       queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
       queryClient.invalidateQueries({ queryKey: ["cohort"] });
@@ -126,6 +131,7 @@ export function CandidatesPanel({
     mutationFn: deleteCandidate,
     onSuccess: () => {
       toast.success("Candidate deleted");
+      setPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
       queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
       queryClient.invalidateQueries({ queryKey: ["cohort"] });
@@ -133,22 +139,9 @@ export function CandidatesPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function confirmDelete(c: Candidate) {
-    if (!window.confirm(`Delete candidate “${c.full_name}” (${c.candidate_code})?`)) return;
-    remove.mutate(c.id);
-  }
-
   function handleStatusChange(c: Candidate, value: string) {
     if (value === "rejected" && isInstructor) {
-      const reason = window.prompt("Enter a training disqualification reason:");
-      if (!reason?.trim()) {
-        toast.error("A disqualification reason is required to reject a candidate");
-        return;
-      }
-      update.mutate({
-        id: c.id,
-        patch: { status: value as CandidateStatus, disqualification_reason: reason.trim() },
-      });
+      setRejecting(c);
       return;
     }
     update.mutate({ id: c.id, patch: { status: value as CandidateStatus } });
@@ -405,7 +398,7 @@ export function CandidatesPanel({
                         variant="outline"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         disabled={remove.isPending}
-                        onClick={() => confirmDelete(c)}
+                        onClick={() => setPendingDelete(c)}
                       >
                         Delete
                       </Button>
@@ -427,6 +420,41 @@ export function CandidatesPanel({
           </TableBody>
         </Table>
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Delete candidate"
+        description={
+          pendingDelete
+            ? `Delete candidate “${pendingDelete.full_name}” (${pendingDelete.candidate_code})?`
+            : ""
+        }
+        confirmLabel="Delete candidate"
+        pending={remove.isPending}
+        onConfirm={async () => {
+          if (pendingDelete) await remove.mutateAsync(pendingDelete.id);
+        }}
+      />
+      <ReasonDialog
+        open={Boolean(rejecting)}
+        onOpenChange={(open) => {
+          if (!open) setRejecting(null);
+        }}
+        title="Disqualify candidate"
+        description="A reason is required to reject this candidate."
+        confirmLabel="Reject"
+        pending={update.isPending}
+        onConfirm={async (reason) => {
+          if (!rejecting) return;
+          await update.mutateAsync({
+            id: rejecting.id,
+            patch: { status: "rejected", disqualification_reason: reason },
+          });
+        }}
+      />
     </div>
   );
 }

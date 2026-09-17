@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { suffix: "", label: "Roster", end: true },
+  { suffix: "/curriculum", label: "Curriculum", end: false },
   { suffix: "/attendance", label: "Attendance", end: false },
   { suffix: "/assessments", label: "Marks", end: false },
+  { suffix: "/gradebook", label: "Gradebook", end: false },
   { suffix: "/issues", label: "Issues", end: false },
   { suffix: "/reports", label: "Reports", end: false },
 ] as const;
