@@ -160,6 +160,13 @@ export async function listCandidates(cohortId?: string) {
   return data.data.candidates;
 }
 
+export async function getCandidate(id: string) {
+  const { data } = await api.get<
+    ApiResponse<{ candidate: Candidate; cohort: import("./cohortService").Cohort }>
+  >(`/candidates/${id}`);
+  return data.data;
+}
+
 export async function updateCandidate(id: string, patch: UpdateCandidatePatch) {
   const { data } = await api.patch<ApiResponse<{ candidate: Candidate }>>(
     `/candidates/${id}`,
@@ -170,6 +177,33 @@ export async function updateCandidate(id: string, patch: UpdateCandidatePatch) {
 
 export async function deleteCandidate(id: string) {
   const { data } = await api.delete<ApiResponse<{ id: string }>>(`/candidates/${id}`);
+  return data.data;
+}
+
+export async function createIntakeCandidate(payload: {
+  cohort_id: string;
+  full_name: string;
+  national_id: string;
+  phone: string;
+  gender?: string | null;
+  district?: string | null;
+  date_of_birth?: string | null;
+  email?: string | null;
+}) {
+  const { data } = await api.post<ApiResponse<{ candidate: Candidate }>>("/candidates/intake", payload);
+  return data.data.candidate;
+}
+
+export async function bulkCreateIntakeCandidates(
+  cohortId: string,
+  candidates: Array<{ full_name: string; national_id: string; phone: string }>,
+) {
+  const { data } = await api.post<
+    ApiResponse<{
+      created: Candidate[];
+      errors: Array<{ index: number; national_id: string; message: string }>;
+    }>
+  >("/candidates/intake/bulk", { cohort_id: cohortId, candidates });
   return data.data;
 }
 

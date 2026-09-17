@@ -15,6 +15,7 @@ import { SettingsPanel } from "@/components/dashboard/SettingsPanel";
 import { isDashboardTab, type DashboardTab } from "@/components/dashboard/types";
 import { useAuth } from "@/hooks/useAuth";
 import { defaultTabForRole } from "@/lib/permissions";
+import { CardGridSkeleton, TableSkeleton } from "@/components/feedback/Skeleton";
 
 const DATA_TABS: DashboardTab[] = ["overview", "cohorts", "candidates"];
 
@@ -63,7 +64,7 @@ export default function Dashboard() {
   });
 
   if (!user || !canAccessTab(tab)) {
-    return <p className="text-base text-muted-foreground">Loading…</p>;
+    return <CardGridSkeleton />;
   }
 
   return (
@@ -80,9 +81,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {needsData && isPending && (
-        <p className="text-base text-muted-foreground">Loading…</p>
-      )}
+      {needsData && isPending && (tab === "overview" ? <CardGridSkeleton cards={2} /> : <TableSkeleton />)}
 
       {tab === "overview" && !isPending && !isError && data && (
         <OverviewPanel cohorts={data.cohorts} candidates={data.candidates} role={user.role} />

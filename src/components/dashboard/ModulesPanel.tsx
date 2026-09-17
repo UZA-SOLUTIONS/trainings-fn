@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Draft = {
   id?: string;
@@ -112,6 +113,7 @@ export function ModulesPanel() {
   const { can } = useAuth();
   const canWrite = can("modules.write");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<TrainingModule | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -127,7 +129,7 @@ export function ModulesPanel() {
 
   const { data: courses = [] } = useQuery({
     queryKey: ["courses"],
-    queryFn: listCourses,
+    queryFn: () => listCourses(),
   });
 
   const saveMutation = useMutation({
@@ -175,6 +177,7 @@ export function ModulesPanel() {
     mutationFn: deleteModule,
     onSuccess: () => {
       toast.success("Module deleted");
+      setPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["modules"] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
     },
@@ -186,8 +189,7 @@ export function ModulesPanel() {
   }
 
   function confirmDelete(mod: TrainingModule) {
-    if (!window.confirm(`Delete module “${mod.name}”?`)) return;
-    deleteMutation.mutate(mod.id);
+    setPendingDelete(mod);
   }
 
   function updateSection(index: number, patch: Partial<ModuleContentSection>) {
@@ -618,6 +620,20 @@ export function ModulesPanel() {
           </Table>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Delete module"
+        description={pendingDelete ? `Delete module “${pendingDelete.name}”?` : ""}
+        confirmLabel="Delete module"
+        pending={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (pendingDelete) await deleteMutation.mutateAsync(pendingDelete.id);
+        }}
+      />
     </div>
   );
 }

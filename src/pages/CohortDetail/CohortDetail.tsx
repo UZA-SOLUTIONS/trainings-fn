@@ -1,8 +1,14 @@
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { CohortClassroomHeader } from "@/components/classroom/CohortClassroomHeader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCohort } from "@/services/cohortService";
-import { deleteCandidate, updateCandidate } from "@/services/candidateService";
+import {
+  bulkCreateIntakeCandidates,
+  createIntakeCandidate,
+  deleteCandidate,
+  updateCandidate,
+} from "@/services/candidateService";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ReasonDialog } from "@/components/ui/reason-dialog";
 import { BANK_REQUIREMENTS, depositRequirement } from "@/constants/bank-requirements";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
@@ -95,6 +103,14 @@ interface Candidate {
 
 const STATUSES = ["enrolled", "waitlisted", "rejected", "withdrawn", "graduated"] as const;
 const TRAINING = ["not_started", "in_progress", "completed", "failed"] as const;
+type BulkRow = { full_name: string; national_id: string; phone: string };
+function emptyRows(): BulkRow[] {
+  return [
+    { full_name: "", national_id: "", phone: "" },
+    { full_name: "", national_id: "", phone: "" },
+    { full_name: "", national_id: "", phone: "" },
+  ];
+}
 const LOAN_STATUSES = [
   "not_ready",
   "pending",
@@ -118,6 +134,11 @@ export default function CohortDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Candidate | null>(null);
+  const [rejecting, setRejecting] = useState<Candidate | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>(emptyRows);
+  const [addRow, setAddRow] = useState<BulkRow>({ full_name: "", national_id: "", phone: "" });
   const { can, isInstructor, isBankPartner } = useAuth();
 
   useEffect(() => {
@@ -147,6 +168,7 @@ export default function CohortDetail() {
     },
     onSuccess: () => {
       toast.success("Candidate updated");
+      setRejecting(null);
       queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
       queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
       queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
@@ -159,6 +181,7 @@ export default function CohortDetail() {
     onSuccess: () => {
       toast.success("Candidate deleted");
       setOpenId(null);
+      setPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
       queryClient.invalidateQueries({ queryKey: ["cohort-overview"] });
       queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
@@ -166,16 +189,43 @@ export default function CohortDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function confirmDelete(c: Candidate) {
-    if (
-      !window.confirm(
-        `Delete candidate “${c.full_name}” (${c.candidate_code})? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    remove.mutate(c.id);
-  }
+  const addOne = useMutation({
+    mutationFn: () =>
+      createIntakeCandidate({
+        cohort_id: cohortId!,
+        full_name: addRow.full_name.trim(),
+        national_id: addRow.national_id.trim(),
+        phone: addRow.phone.trim(),
+      }),
+    onSuccess: () => {
+      toast.success("Candidate added to the provided roster");
+      setAddRow({ full_name: "", national_id: "", phone: "" });
+      queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
+      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulk = useMutation({
+    mutationFn: () =>
+      bulkCreateIntakeCandidates(
+        cohortId!,
+        bulkRows.filter((r) => r.full_name.trim() && r.national_id.trim() && r.phone.trim()),
+      ),
+    onSuccess: (result) => {
+      toast.success(
+        `${result.created.length} added${result.errors.length ? `, ${result.errors.length} failed` : ""}`,
+      );
+      if (result.errors.length) {
+        result.errors.forEach((err) => toast.error(`Row ${err.index + 1}: ${err.message}`));
+      }
+      setBulkRows(emptyRows());
+      setBulkOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["cohort", cohortId] });
+      queryClient.invalidateQueries({ queryKey: ["manage-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const cohort = data?.cohort;
   const candidates = (data?.candidates ?? []) as Candidate[];
@@ -185,15 +235,7 @@ export default function CohortDetail() {
 
   function handleStatusChange(c: Candidate, value: string) {
     if (value === "rejected" && isInstructor) {
-      const reason = window.prompt("Enter a training disqualification reason:");
-      if (!reason?.trim()) {
-        toast.error("A disqualification reason is required to reject a candidate");
-        return;
-      }
-      update.mutate({
-        id: c.id,
-        patch: { status: value, disqualification_reason: reason.trim() },
-      });
+      setRejecting(c);
       return;
     }
     update.mutate({ id: c.id, patch: { status: value } });
@@ -280,7 +322,7 @@ export default function CohortDetail() {
                             size="sm"
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                             disabled={remove.isPending}
-                            onClick={() => confirmDelete(c)}
+                            onClick={() => setPendingDelete(c)}
                           >
                             Delete
                           </Button>
@@ -541,6 +583,11 @@ export default function CohortDetail() {
                                       ))}
                                     </SelectContent>
                                   </Select>
+                                  {c.status === "graduated" && (
+                                    <Button asChild variant="outline" size="sm">
+                                      <Link to={`/candidates/${c.id}/certificate`}>Print certificate</Link>
+                                    </Button>
+                                  )}
                                   <div className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">
                                       Attendance %
@@ -630,20 +677,102 @@ export default function CohortDetail() {
 
   return (
     <div>
-      <Link
-        to="/dashboard?tab=candidates"
-        className="inline-flex text-base text-muted-foreground transition-colors hover:text-foreground"
-      >
-        ← Candidates
-      </Link>
+      <CohortClassroomHeader cohort={cohort} loading={isPending} />
+
+      {cohort?.kind === "institution" && (
+        <Card className="mt-6 border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+          Partner institution intake. Schools teach this class on the institution dashboard. Add the
+          provided roster here; attendance and marks stay on the school copy.
+        </Card>
+      )}
+
+      {cohort?.kind === "institution" && canMembership && (
+        <div className="mt-6 space-y-4">
+          <Card className="space-y-3 p-5">
+            <p className="text-sm font-medium">Add one person</p>
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input
+                placeholder="Full name"
+                value={addRow.full_name}
+                onChange={(e) => setAddRow({ ...addRow, full_name: e.target.value })}
+              />
+              <Input
+                placeholder="National ID"
+                value={addRow.national_id}
+                onChange={(e) => setAddRow({ ...addRow, national_id: e.target.value })}
+              />
+              <Input
+                placeholder="Phone"
+                value={addRow.phone}
+                onChange={(e) => setAddRow({ ...addRow, phone: e.target.value })}
+              />
+              <Button
+                type="button"
+                disabled={
+                  addOne.isPending ||
+                  !addRow.full_name.trim() ||
+                  !addRow.national_id.trim() ||
+                  !addRow.phone.trim()
+                }
+                onClick={() => addOne.mutate()}
+              >
+                {addOne.isPending ? "Saving…" : "Add"}
+              </Button>
+            </div>
+          </Card>
+          <Button type="button" variant="outline" onClick={() => setBulkOpen((v) => !v)}>
+            {bulkOpen ? "Close bulk add" : "Add provided roster"}
+          </Button>
+          {bulkOpen && (
+            <Card className="mt-4 space-y-3 p-5">
+              {bulkRows.map((row, index) => (
+                <div key={index} className="grid gap-3 md:grid-cols-3">
+                  <Input
+                    placeholder="Full name"
+                    value={row.full_name}
+                    onChange={(e) => {
+                      const next = [...bulkRows];
+                      next[index] = { ...next[index], full_name: e.target.value };
+                      setBulkRows(next);
+                    }}
+                  />
+                  <Input
+                    placeholder="National ID"
+                    value={row.national_id}
+                    onChange={(e) => {
+                      const next = [...bulkRows];
+                      next[index] = { ...next[index], national_id: e.target.value };
+                      setBulkRows(next);
+                    }}
+                  />
+                  <Input
+                    placeholder="Phone"
+                    value={row.phone}
+                    onChange={(e) => {
+                      const next = [...bulkRows];
+                      next[index] = { ...next[index], phone: e.target.value };
+                      setBulkRows(next);
+                    }}
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setBulkRows([...bulkRows, ...emptyRows()])}>
+                  More rows
+                </Button>
+                <Button type="button" disabled={bulk.isPending} onClick={() => bulk.mutate()}>
+                  {bulk.isPending ? "Saving…" : "Save roster"}
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
         {isPending && <p className="text-base text-muted-foreground">Loading candidates…</p>}
         {cohort && (
           <>
-            <p className="text-eyebrow text-muted-foreground">{cohort.code}</p>
-            <h1 className="mt-2 font-display text-4xl font-bold">{cohort.name}</h1>
-
             <Section title={`Enrolled (${enrolled.length})`}>
               <CandidateTable rows={enrolled} empty="No candidates enrolled yet." />
             </Section>
@@ -660,6 +789,41 @@ export default function CohortDetail() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Delete candidate"
+        description={
+          pendingDelete
+            ? `Delete candidate “${pendingDelete.full_name}” (${pendingDelete.candidate_code})? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete candidate"
+        pending={remove.isPending}
+        onConfirm={async () => {
+          if (pendingDelete) await remove.mutateAsync(pendingDelete.id);
+        }}
+      />
+      <ReasonDialog
+        open={Boolean(rejecting)}
+        onOpenChange={(open) => {
+          if (!open) setRejecting(null);
+        }}
+        title="Disqualify candidate"
+        description="A reason is required to reject this candidate."
+        confirmLabel="Reject"
+        pending={update.isPending}
+        onConfirm={async (reason) => {
+          if (!rejecting) return;
+          await update.mutateAsync({
+            id: rejecting.id,
+            patch: { status: "rejected", disqualification_reason: reason },
+          });
+        }}
+      />
     </div>
   );
 }

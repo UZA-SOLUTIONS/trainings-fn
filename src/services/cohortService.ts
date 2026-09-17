@@ -1,6 +1,8 @@
 import { api, type ApiResponse } from "./api";
 import type { Candidate, CandidateSummary } from "./candidateService";
 
+export type CohortKind = "uza" | "institution";
+
 export type Cohort = {
   id: string;
   name: string;
@@ -13,6 +15,10 @@ export type Cohort = {
   partner_bank: string | null;
   institution_id?: string | null;
   notes?: string | null;
+  kind?: CohortKind;
+  target_school_code?: string | null;
+  course_id?: string | null;
+  course?: { id: string; name: string; code: string; status: string } | null;
 };
 
 export type CreateCohortPayload = {
@@ -21,10 +27,14 @@ export type CreateCohortPayload = {
   capacity?: number;
   location?: string | null;
   start_date?: string | null;
+  end_date?: string | null;
   partner_bank?: string | null;
   institution_id?: string | null;
   applications_open?: boolean;
   notes?: string | null;
+  kind?: CohortKind;
+  target_school_code?: string | null;
+  course_id?: string | null;
 };
 
 export async function listCohorts(opts: { open?: boolean } = {}) {
